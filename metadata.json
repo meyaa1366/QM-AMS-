@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Remix: QM AMS",
+  "description": "QM AMS Enterprise Audit \u0026 Ledger Management System under IFRS \u0026 ERCA guidelines.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
