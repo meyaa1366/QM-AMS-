@@ -348,7 +348,7 @@ export default function COARegisterTab({
  
                           {/* Auditor ID */}
                           <td className="px-4 py-3 text-[11px] text-slate-500 font-mono text-center">
-                            {acc.createdBy ? acc.createdBy.replace('mzerihun01@gmail.com', 'M.Zerihun') : 'System'}
+                            {acc.createdBy ? acc.createdBy.replace('mzerihun01@gmail.com', 'Lead Auditor') : 'System'}
                           </td>
                         </>
                       ) : (

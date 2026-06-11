@@ -27,7 +27,7 @@ interface DevImplementationGuideTabProps {
 }
 
 export default function DevImplementationGuideTab({ accounts = [] }: DevImplementationGuideTabProps) {
-  const [selectedTopic, setSelectedTopic] = useState<'architecture' | 'coa-linkage' | 'backend-rules' | 'api-integration' | 'qelem-branding'>('architecture');
+  const [selectedTopic, setSelectedTopic] = useState<'architecture' | 'coa-linkage' | 'backend-rules' | 'api-integration' | 'abc-branding'>('architecture');
   const [payloadAccountType, setPayloadAccountType] = useState('Asset');
   const [payloadAccountCode, setPayloadAccountCode] = useState('11010');
   const [payloadIsControl, setPayloadIsControl] = useState(true);
@@ -38,7 +38,7 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
   // Simulated transaction boundary validation playground
   const [txPeriodCode, setTxPeriodCode] = useState('FY2026-P03');
   const [txAccountCode, setTxAccountCode] = useState('11200'); // Trade Receivables (Control)
-  const [txSlCode, setTxSlCode] = useState('CUST-401'); // QELEM Subsidiary customer
+  const [txSlCode, setTxSlCode] = useState('CUST-401'); // ABC Subsidiary customer
   const [txJournalType, setTxJournalType] = useState('AR_INVOICE');
   const [txValidationResult, setTxValidationResult] = useState<any>(null);
 
@@ -52,7 +52,7 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
 
       // BR-COA-02 Check
       if (payloadAccountType === 'Asset' && codeStart !== '1') {
-        errors.push(`BR-COA-02 violation: Assets must start with code "1" in Qelem Meda ERP structure. Found: "${codeStart}"`);
+        errors.push(`BR-COA-02 violation: Assets must start with code "1" in ABC ERP structure. Found: "${codeStart}"`);
       } else if (payloadAccountType === 'Liability' && codeStart !== '2') {
         errors.push(`BR-COA-02 violation: Liabilities must start with code "2". Found: "${codeStart}"`);
       } else if (payloadAccountType === 'Equity' && codeStart !== '3') {
@@ -80,7 +80,7 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
         success: errors.length === 0,
         errors,
         warnings,
-        message: errors.length === 0 ? "Account metadata conforms perfectly to Qelem Meda backend schemas (v4.1)." : "Schemas evaluation failed with severe block policies."
+        message: errors.length === 0 ? "Account metadata conforms perfectly to ABC backend schemas (v4.1)." : "Schemas evaluation failed with severe block policies."
       });
       setIsValidating(false);
     }, 600);
@@ -134,16 +134,16 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
       {/* Brand Header */}
       <div className="px-6 py-5 bg-[#0b0f19] border-b border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          {/* Qelem Meda Emblem */}
+          {/* ABC Emblem */}
           <div className="w-12 h-12 bg-indigo-650/15 border-2 border-indigo-500 rounded-2xl flex items-center justify-center text-[#24389c] relative overflow-hidden shrink-0">
             {/* Gold curve overlay */}
             <div className="absolute top-0 right-0 w-6 h-6 border-2 border-amber-500 rounded-full translate-x-3 -translate-y-3"></div>
-            <span className="font-sans font-black text-lg text-indigo-400">QM</span>
+            <span className="font-sans font-black text-lg text-indigo-400">ABC</span>
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="font-sans font-black text-slate-100 text-sm md:text-base leading-none">
-                QELEM MEDA ERP FINANCE • IMPLEMENTATION MANUAL
+                ABC ERP FINANCE • IMPLEMENTATION MANUAL
               </h2>
               <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest">
                 v4.1 spec
@@ -219,15 +219,15 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
           </button>
 
           <button 
-            onClick={() => setSelectedTopic('qelem-branding')}
+            onClick={() => setSelectedTopic('abc-branding')}
             className={`w-full flex items-center gap-2.5 p-3 rounded-xl text-xs font-bold text-left cursor-pointer transition-all ${
-              selectedTopic === 'qelem-branding' 
+              selectedTopic === 'abc-branding' 
                 ? 'bg-[#24389c] text-white border-l-4 border-amber-500 shadow-md' 
                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
             }`}
           >
             <Sparkles className="w-4 h-4 shrink-0 text-amber-450" />
-            <span>5. Qelem Meda Branding Guide</span>
+            <span>5. ABC Branding Guide</span>
           </button>
 
           {/* Guide Note Box */}
@@ -254,7 +254,7 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
                   ERP Double Entry & Subledger Integrity Architecture
                 </h3>
                 <p className="text-xs text-slate-400 leading-normal">
-                  In the Qelem Meda Accounting Management System, transactions are handled as standard ledger posts with explicit module segregation controls. All data follows strict validation routes to secure clean financial statements.
+                  In the ABC Accounting Management System, transactions are handled as standard ledger posts with explicit module segregation controls. All data follows strict validation routes to secure clean financial statements.
                 </p>
               </div>
 
@@ -693,16 +693,16 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
             </div>
           )}
 
-          {/* TOPIC 5: BRAnDING AND THEME */}
-          {selectedTopic === 'qelem-branding' && (
+          {/* TOPIC 5: BRANDING AND THEME */}
+          {selectedTopic === 'abc-branding' && (
             <div className="space-y-6 animate-fadeIn">
               <div className="space-y-2 border-b border-slate-800 pb-3">
                 <h3 className="font-sans font-black text-lg text-[#24389c] dark:text-indigo-400 flex items-center gap-2 uppercase">
                   <Sparkles className="text-amber-500 w-5.5 h-5.5" />
-                  Qelem Meda Brand Design & Colors System
+                  ABC Brand Design & Colors System
                 </h3>
                 <p className="text-xs text-slate-400 leading-normal">
-                  The visual identity of Qelem Meda Accounting Management System relies on precise harmony of Deep Royal Blue (#24389c) and warm Yellow Gold. Together, these convey security, precision, and compliance.
+                  The visual identity of ABC Accounting Management System relies on precise harmony of Deep Royal Blue (#24389c) and warm Yellow Gold. Together, these convey security, precision, and compliance.
                 </p>
               </div>
 
@@ -713,8 +713,8 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
                     <span className="absolute bottom-1 right-1 text-[8px] font-mono text-white/70 font-bold">#24389C</span>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-100 font-sans">1. Meda Royal Blue (Primary)</h4>
-                    <p className="text-[10px] text-slate-400 leading-normal mt-1">
+                    <h4 className="text-xs font-bold text-slate-100 font-sans">1. ABC Royal Blue (Primary)</h4>
+                    <p className="text-[10px] text-slate-405 leading-normal mt-1">
                       Our signature corporate blue. Dominates headers, primary utility buttons, active tab states, and database lock frames.
                     </p>
                   </div>
@@ -725,8 +725,8 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
                     <span className="absolute bottom-1 right-1 text-[8px] font-mono text-slate-900/70 font-bold">#F5A623</span>
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-100 font-sans">2. Qelem Amber Gold (Accent)</h4>
-                    <p className="text-[10px] text-slate-400 leading-normal mt-1">
+                    <h4 className="text-xs font-bold text-slate-100 font-sans">2. ABC Amber Gold (Accent)</h4>
+                    <p className="text-[10px] text-slate-404 leading-normal mt-1">
                       The golden accent. Highlights warning flags, scan badges, active workflow states, and branding borders.
                     </p>
                   </div>
@@ -743,12 +743,12 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
                 </span>
                 
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Notice the subtle usage: all primary buttons hover into Meda Royal Blue, and check buttons pulse with a warm gold ring. Look out for the Qelem Meda compliance watermark in page corners!
+                  Notice the subtle usage: all primary buttons hover into ABC Royal Blue, and check buttons pulse with a warm gold ring. Look out for the ABC compliance watermark in page corners!
                 </p>
 
                 <div className="flex gap-2 text-[10px] font-bold">
-                  <span className="bg-[#24389c] text-white px-2 py-1 rounded">Meda Blue Frame</span>
-                  <span className="bg-amber-500 text-slate-950 px-2 py-1 rounded">Qelem Accent Badge</span>
+                  <span className="bg-[#24389c] text-white px-2 py-1 rounded">ABC Blue Frame</span>
+                  <span className="bg-amber-500 text-slate-950 px-2 py-1 rounded">ABC Accent Badge</span>
                   <span className="border border-slate-700 px-2 py-1 rounded text-slate-400">Carbon Slate</span>
                 </div>
               </div>

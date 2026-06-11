@@ -890,7 +890,7 @@ export default function VoucherRegistryView({
 
                   <div className="p-3 bg-slate-50 rounded border border-slate-150">
                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest select-none">Last modified info</span>
-                    <p className="text-xs text-slate-800 font-bold mt-1">Lead Auditor (MZerihun)</p>
+                    <p className="text-xs text-slate-800 font-bold mt-1">Lead Auditor (Internal Control)</p>
                     <p className="text-[10px] text-slate-500 mt-0.5">{new Date().toLocaleDateString()}</p>
                   </div>
                 </div>
@@ -901,10 +901,10 @@ export default function VoucherRegistryView({
                 <SecurityIcon className="absolute -right-6 -bottom-6 w-28 h-28 opacity-10 rotate-12 transition-transform group-hover:rotate-0 duration-500" />
                 <h5 className="text-xs font-bold uppercase tracking-wider mb-2 relative z-10">Security Standard</h5>
                 <p className="text-[11px] text-cyan-100 leading-normal mb-4 relative z-10">
-                  Ensure authorized GL controllers are mapped within roles to prevent posting adjustments after closure dates.
+                   Ensure authorized GL controllers are mapped within roles to prevent posting adjustments after closure dates.
                 </p>
                 <button 
-                  onClick={() => triggerLog('MZerihun', `downloaded policy documentation.`, 'info')}
+                  onClick={() => triggerLog('System Auditor', `downloaded policy documentation.`, 'info')}
                   className="text-xs font-bold underline hover:text-cyan-100 relative z-10"
                 >
                   View Policy Guidelines

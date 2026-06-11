@@ -470,11 +470,11 @@ export default function LedgerCardTab({ accounts }: LedgerCardTabProps) {
           <div className="pt-4 border-t border-dashed border-slate-200 grid grid-cols-2 lg:grid-cols-4 gap-4 text-[10px] font-mono font-bold text-slate-500 uppercase select-none">
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-center">
               <span>Prepared By:</span>
-              <span className="block mt-1 font-black text-slate-800">M. Zerihun (FinAuditor)</span>
+              <span className="block mt-1 font-black text-slate-800">Lead FinAuditor (System)</span>
             </div>
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-center">
               <span>Auditor Signature:</span>
-              <span className="block mt-1 text-emerald-600 font-black">✔ MZ_SIGNED_VERIFIED</span>
+              <span className="block mt-1 text-emerald-600 font-black">✔ AUDIT_SIGNED_VERIFIED</span>
             </div>
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-center">
               <span>Internal Ref Lock:</span>

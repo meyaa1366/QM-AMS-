@@ -25,6 +25,62 @@ import {
   ETHIOPIAN_TAX_CATEGORIES 
 } from '../data';
 
+const CATEGORIES_BY_TYPE: Record<AccountType, string[]> = {
+  Asset: [
+    'Current Asset',
+    'Non-Current Asset',
+    'Cash and Cash Equivalents',
+    'Trade and Other Receivables',
+    'Inventory',
+    'Prepayment',
+    'Property, Plant and Equipment',
+    'Intangible Asset'
+  ],
+  Liability: [
+    'Current Liability',
+    'Non-Current Liability',
+    'Trade and Other Payables',
+    'Tax Payable',
+    'Borrowings',
+    'Lease Liability',
+    'Accrued Expense'
+  ],
+  Equity: [
+    'Share Capital',
+    'Retained Earnings',
+    'Legal Reserve',
+    'Revaluation Reserve',
+    'Current Year Profit or Loss'
+  ],
+  Revenue: [
+    'Sales Revenue',
+    'Service Revenue',
+    'Other Income',
+    'Finance Income'
+  ],
+  'Cost of Sales': [
+    'Cost of Goods Sold',
+    'Cost of Services',
+    'Direct Cost',
+    'Production Cost'
+  ],
+  Expense: [
+    'Administrative Expense',
+    'Selling and Distribution Expense',
+    'Employee Benefit Expense',
+    'Depreciation Expense',
+    'Finance Cost',
+    'Tax Expense',
+    'Other Expense'
+  ]
+};
+
+const getAccountTypeLabel = (type: string) => {
+  if (type === 'Revenue') return 'Income';
+  if (type === 'Cost of Sales') return 'Cost';
+  return type;
+};
+
 interface AddEditAccountTabProps {
   accounts: Account[];
   selectedAccount: Account | null;
@@ -169,15 +225,23 @@ export default function AddEditAccountTab({
     setSlRequired(slType !== 'None');
   }, [slType]);
 
-  // Auto-set Group and Subgroup when Account Type changes
+  // Auto-set Group and Category when Account Type changes
   useEffect(() => {
     const availableGroups = GROUPS[accountType] || [];
     if (selectedAccount && selectedAccount.accountType === accountType) {
       // Keep edit values
-    } else if (availableGroups.length > 0) {
-      setGroup(availableGroups[0]);
     } else {
-      setGroup('');
+      if (availableGroups.length > 0) {
+        setGroup(availableGroups[0]);
+      } else {
+        setGroup('');
+      }
+      const availableSubgroups = CATEGORIES_BY_TYPE[accountType] || [];
+      if (availableSubgroups.length > 0) {
+        setSubgroup(availableSubgroups[0]);
+      } else {
+        setSubgroup('');
+      }
     }
 
     // Default balance by type
@@ -187,18 +251,6 @@ export default function AddEditAccountTab({
       setBalance('Credit');
     }
   }, [accountType]);
-
-  // Auto-set Subgroup when Group changes
-  useEffect(() => {
-    const availableSubgroups = SUBGROUPS[group] || [];
-    if (selectedAccount && selectedAccount.group === group) {
-      // Keep edit values
-    } else if (availableSubgroups.length > 0) {
-      setSubgroup(availableSubgroups[0]);
-    } else {
-      setSubgroup('');
-    }
-  }, [group]);
 
   // Conduct real-time compliance audits on change
   useEffect(() => {
@@ -246,7 +298,7 @@ export default function AddEditAccountTab({
     }
 
     // Rule 10: Tax Account and Tax mappings
-    if (subgroup === 'VAT Payable' && vatCode === 'N/A') {
+    if (subgroup === 'VAT Payable' && vatCode === 'Not Applicable') {
       arr.push('BR-COA-10: Tax payable registers require declaring a specific VAT output code.');
     }
 
@@ -397,10 +449,10 @@ export default function AddEditAccountTab({
           </div>
           <div>
             <h3 className="font-sans font-extrabold text-base text-slate-900 leading-tight">
-              {selectedAccount ? `Adjust Account Settings: [${code}]` : 'Create General Ledger Account'}
+              {selectedAccount ? `Adjust Account Settings: [${code}]` : 'Create Chart of Accounts Record'}
             </h3>
             <p className="text-[10px] text-slate-500 mt-1 font-medium font-sans">
-              Validate structures dynamically against IFRS regulations and Ethiopian Federal Revenue rules
+              Define IFRS-aligned ledger accounts with posting control, tax mapping, reporting dimensions, and audit approval.
             </p>
           </div>
         </div>
@@ -445,10 +497,10 @@ export default function AddEditAccountTab({
       <div className="bg-slate-900 text-white rounded-xl p-2.5 flex items-center justify-between shadow-xs select-none">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 w-full text-center">
           {[
-            { s: 1, name: '1. Identity' },
-            { s: 2, name: '2. Postings & SL' },
-            { s: 3, name: '3. Tax & Dim.' },
-            { s: 4, name: '4. Summary &' }
+            { s: 1, name: '1. Account Identity' },
+            { s: 2, name: '2. Posting & Subledger Control' },
+            { s: 3, name: '3. Tax, Currency & Reporting Dimensions' },
+            { s: 4, name: '4. Review, Workflow & Audit' }
           ].map((item) => {
             const isActive = step === item.s;
             const isCompleted = step > item.s;
@@ -491,79 +543,79 @@ export default function AddEditAccountTab({
             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-3">
               <h4 className="font-sans font-black text-xs uppercase tracking-widest text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
                 <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                <span>Legal Hierarchy & Identity</span>
+                <span>Company, Account Identity & IFRS Classification</span>
               </h4>
               <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Legal Company</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Company / Legal Entity</label>
                     <select
                       value={company}
                       onChange={(e) => setCompany(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-slate-50 text-slate-850 font-semibold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 text-slate-850 font-semibold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       {COMPANIES.map((c, i) => <option key={i} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Branch Location</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Branch / Operating Location</label>
                     <select
                       value={branch}
                       onChange={(e) => setBranch(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-slate-50 text-slate-850 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 text-slate-850 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       {BRANCHES.map((b, i) => <option key={i} value={b}>{b}</option>)}
                     </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-800 mb-1">Account Code *</label>
+                    <label className="block font-bold text-slate-800 mb-1 font-sans">Account Code *</label>
                     <input
                       type="text"
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/[^0-9-]/g, ''))}
                       disabled={!!selectedAccount}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-white font-mono font-black text-blue-600 focus:ring-1 focus:ring-blue-500 outline-none"
-                      placeholder="e.g. 1120-003"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-white font-mono font-black text-blue-600 focus:ring-1 focus:ring-blue-500 outline-none"
+                      placeholder="Example: 1110, 2110, 4110"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-800 mb-1">Account Name *</label>
+                    <label className="block font-bold text-slate-800 mb-1 font-sans">Account Name *</label>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-white font-bold text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none"
-                      placeholder="e.g. Cash in Bole Safe"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-white font-bold text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none font-sans"
+                      placeholder="Example: Cash on Hand, Trade Payables, Sales Revenue"
                       required
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Immediate Parent Fold</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Parent Account</label>
                     <select
                       value={parentAccount}
                       onChange={(e) => setParentAccount(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-white text-slate-705 font-semibold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-white text-slate-705 font-semibold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
-                      <option value="None">None (Root Level Folder)</option>
+                      <option value="None">None — Top-Level Account</option>
                       {parentOptions.map((po, i) => (
                         <option key={i} value={po.code}>[{po.code}] {po.name}</option>
                       ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Calculated Level</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Account Hierarchy Level</label>
                     <input
                       type="text"
-                      value={`Level L${level} hierarchical depth`}
+                      value={level === 1 ? 'Level 1 — Main Account Class' : `Level ${level} — Sub-Account`}
                       disabled
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-slate-100 text-slate-550 font-bold font-mono"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-100 text-slate-550 font-bold font-sans"
                     />
                   </div>
                 </div>
@@ -577,64 +629,68 @@ export default function AddEditAccountTab({
                 <span>Accounting Classification</span>
               </h4>
               <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-850 mb-1">Account Type Group</label>
+                    <label className="block font-bold text-slate-850 mb-1 font-sans">Account Type</label>
                     <select
                       value={accountType}
                       onChange={(e) => setAccountType(e.target.value as AccountType)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-white text-indigo-700 font-extrabold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-white text-indigo-700 font-extrabold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
-                      {ACCOUNT_TYPES.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                      {ACCOUNT_TYPES.map((t, i) => (
+                        <option key={i} value={t}>
+                          {getAccountTypeLabel(t)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Balance Normal Rule</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Normal Balance</label>
                     <select
                       value={balance}
                       onChange={(e) => setBalance(e.target.value as BalanceType)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-white font-semibold text-slate-750 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-white font-semibold text-slate-750 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
-                      <option value="Debit">Debit Increases Balance</option>
-                      <option value="Credit">Credit Increases Balance</option>
+                      <option value="Debit">Debit Normal Balance</option>
+                      <option value="Credit">Credit Normal Balance</option>
                       <option value="Debit or Credit">Debit or Credit (clearing)</option>
                       <option value="None">None (statistical)</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Statement Group</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Financial Statement Section</label>
                     <select
                       value={group}
                       onChange={(e) => setGroup(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       {(GROUPS[accountType] || []).map((g, i) => <option key={i} value={g}>{g}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Subgroup / Category</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Account Category</label>
                     <select
                       value={subgroup}
                       onChange={(e) => setSubgroup(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
-                      {(SUBGROUPS[group] || []).map((sg, i) => <option key={i} value={sg}>{sg}</option>)}
+                      {(CATEGORIES_BY_TYPE[accountType] || []).map((sg, i) => <option key={i} value={sg}>{sg}</option>)}
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1">IFRS Standard Taxonomy</label>
-                  <select
-                    value={ifrsClass}
-                    onChange={(e) => setIfrsClass(e.target.value)}
-                    className="w-full border border-slate-200 rounded-lg p-2 bg-slate-50 text-slate-700 font-semibold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
-                  >
-                    {IFRS_CLASSES.map((ic, i) => <option key={i} value={ic}>{ic}</option>)}
-                  </select>
+                   <label className="block font-bold text-slate-500 mb-1 font-sans">IFRS Standard Reference</label>
+                   <select
+                     value={ifrsClass}
+                     onChange={(e) => setIfrsClass(e.target.value)}
+                     className="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 text-slate-700 font-semibold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
+                   >
+                     {IFRS_CLASSES.map((ic, i) => <option key={i} value={ic}>{ic}</option>)}
+                   </select>
                 </div>
               </div>
             </div>
@@ -647,10 +703,10 @@ export default function AddEditAccountTab({
             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-3">
               <h4 className="font-sans font-black text-xs uppercase tracking-widest text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
                 <CheckSquare className="w-3.5 h-3.5 text-blue-600" />
-                <span>Posting Permissions Matrix</span>
+                <span>Posting Control Matrix</span>
               </h4>
               <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex items-start gap-2 bg-slate-55 p-2.5 rounded-xl border border-slate-200/80">
                     <input
                       type="checkbox"
@@ -660,8 +716,10 @@ export default function AddEditAccountTab({
                       className="mt-1 h-3.5 w-3.5 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                     />
                     <label htmlFor="chk-folder" className="cursor-pointer select-none">
-                      <span className="font-extrabold block text-slate-800">Folder Level Node</span>
-                      <span className="text-[9px] text-slate-500 mt-0.5 block leading-tight">Blocks direct posts, inherits kids rollup sums</span>
+                      <span className="font-extrabold block text-slate-800">Summary Folder Node (No Direct Postings)</span>
+                      <span className="text-[9px] text-slate-500 mt-0.5 block leading-tight">
+                        Defines a summary parent account. Direct postings are blocked; balances represent the aggregated rollup of child accounts.
+                      </span>
                     </label>
                   </div>
 
@@ -674,21 +732,23 @@ export default function AddEditAccountTab({
                       className="mt-1 h-3.5 w-3.5 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
                     />
                     <label htmlFor="chk-control" className="cursor-pointer select-none">
-                      <span className="font-extrabold block text-slate-800">Control Account</span>
-                      <span className="text-[9px] text-slate-500 mt-0.5 block leading-tight">Interlocks with subsidiary ledgers totals</span>
+                      <span className="font-extrabold block text-slate-800">Reconciliation Control Account</span>
+                      <span className="text-[9px] text-slate-500 mt-0.5 block leading-tight">
+                        Designates this as a subledger control point (e.g., Accounts Receivable or Accounts Payable) to enforce subledger-to-GL reconciliation integrity.
+                      </span>
                     </label>
                   </div>
                 </div>
 
                 <div className="space-y-2 pt-1 text-slate-700 font-medium">
                   <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
-                    <span>Direct ledger postings validated:</span>
-                    <span className={`font-mono text-[11px] font-black uppercase ${postingAllowed ? 'text-emerald-600' : 'text-slate-400'}`}>
-                      {postingAllowed ? 'ALLOWED (LEAF NODE)' : 'SUMMARY ROLLUP ONLY'}
+                    <span className="font-sans text-slate-500">Direct posting status:</span>
+                    <span className={`font-sans text-xs font-bold ${postingAllowed ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {postingAllowed ? 'Allowed (Transaction Account)' : 'Blocked (Summary Folder)'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-1.5 border-b border-slate-100">
-                    <span>Manual general ledger voucher entries allowed</span>
+                    <span className="font-sans text-slate-500">Allow manual journal entries</span>
                     <input
                       type="checkbox"
                       checked={manualJournalAllowed}
@@ -698,7 +758,7 @@ export default function AddEditAccountTab({
                     />
                   </div>
                   <div className="flex justify-between items-center py-1.5">
-                    <span>System Automated Posting Only (Forced)</span>
+                    <span className="font-sans text-slate-500">System automated postings only</span>
                     <input
                       type="checkbox"
                       checked={systemPostingOnly}
@@ -714,43 +774,43 @@ export default function AddEditAccountTab({
             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-3">
               <h4 className="font-sans font-black text-xs uppercase tracking-widest text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
                 <Coins className="w-3.5 h-3.5 text-blue-600" />
-                <span>Subsidiary Ledger Mapping</span>
+                <span>Subledger & Reconciliation Controls</span>
               </h4>
               <div className="space-y-3 text-xs">
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1">Required Sub-Ledger (SL) Type *</label>
+                  <label className="block font-bold text-slate-500 mb-1 font-sans">Subsidiary ledger type *</label>
                   <select
                     value={slType}
                     onChange={(e) => setSlType(e.target.value as SLType)}
-                    className="w-full border border-slate-200 p-2 rounded-lg bg-white focus:ring-1 focus:ring-blue-500 outline-none font-bold text-indigo-700 cursor-pointer"
+                    className="w-full border border-slate-200 p-2.5 rounded-lg bg-white focus:ring-1 focus:ring-blue-500 outline-none font-bold text-indigo-700 cursor-pointer font-sans truncate pr-8"
                   >
-                    <option value="None">None (Default Manual Book)</option>
-                    <option value="Customer">Customer (Accounts Receivable, Debtor)</option>
-                    <option value="Supplier">Supplier (Accounts Payable, Vendor)</option>
-                    <option value="Bank">Bank Account (Deposits / Checkbooks)</option>
-                    <option value="Cash">Cash (Petty cash registers)</option>
+                    <option value="None">None (Direct General Ledger Bookings)</option>
+                    <option value="Customer">Customer Ledger (Accounts Receivable)</option>
+                    <option value="Supplier">Supplier Ledger (Accounts Payable)</option>
+                    <option value="Bank">Bank Account</option>
+                    <option value="Cash">Cash Register</option>
                     <option value="Inventory">Inventory (Goods Materials Stock)</option>
                     <option value="Fixed Asset">Fixed Asset (Buildings / Plant Assets)</option>
                     <option value="Tax Authority">Tax Authority (ERCA compliance pools)</option>
-                    <option value="Employee">Employee (Staff advances / Payroll)</option>
+                    <option value="Employee">Employee Register</option>
                   </select>
                 </div>
 
                 {slRequired ? (
-                  <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-150 text-blue-900 space-y-2 mt-2 leading-relaxed">
-                    <span className="font-black text-[10px] uppercase text-blue-800 tracking-wider font-mono block">★ Subsidiary Control Code Active</span>
+                  <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-150 text-blue-900 space-y-2 mt-2 leading-relaxed font-sans">
+                    <span className="font-black text-[10px] uppercase text-blue-800 tracking-wider font-sans block">Subledger control mapping active</span>
                     <p className="text-[10px] font-medium text-slate-600">
-                      Voucher registration triggers checks matching subledger accounts on this key.
+                      Voucher transactions will require matching subledger postings. Transactions will be validated against this interface key.
                     </p>
                     <div className="bg-white p-2 rounded-lg border border-blue-200 flex justify-between items-center mt-1">
-                      <span className="font-mono text-[9px] uppercase font-bold text-slate-400">Index System Key:</span>
+                      <span className="font-sans text-[9px] font-bold text-slate-400">Reconciliation key:</span>
                       <code className="text-[11px] font-mono font-black text-blue-700 bg-blue-50/40 px-1.5 py-0.5 rounded border border-blue-100">
                         {`MAP-${slType.toUpperCase()}-${code || 'XXXX'}`}
                       </code>
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-slate-50 rounded-xl border border-slate-150 p-4 text-center text-[10px] text-slate-450 font-medium italic mt-2">
+                  <div className="bg-slate-50 rounded-xl border border-slate-150 p-4 text-center text-[10px] text-slate-450 font-medium italic mt-2 font-sans">
                     Defaulting to simple direct general ledger bookings block. No nested side-ledger mapped.
                   </div>
                 )}
@@ -765,49 +825,49 @@ export default function AddEditAccountTab({
             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-3">
               <h4 className="font-sans font-black text-xs uppercase tracking-widest text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
                 <Coins className="w-3.5 h-3.5 text-blue-600" />
-                <span>Taxation & Currency Setup</span>
+                <span>Taxation & Currency Controls</span>
               </h4>
               <div className="space-y-3 text-xs">
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">VAT System Code</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">VAT rate *</label>
                     <select
                       value={vatCode}
                       onChange={(e) => setVatCode(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       {VAT_CODES.map((v, i) => <option key={i} value={v}>{v}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Withholding Tax (WHT)</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Withholding tax (WHT) rate</label>
                     <select
                       value={whtCode}
                       onChange={(e) => setWhtCode(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-white focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       {WHT_CODES.map((w, i) => <option key={i} value={w}>{w}</option>)}
                     </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Ethiopian Tax Category</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Ethiopian taxpayer category *</label>
                     <select
                       value={ethiopianTaxCategory}
                       onChange={(e) => setEthiopianTaxCategory(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-white font-semibold text-slate-850 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-white font-semibold text-slate-850 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       {ETHIOPIAN_TAX_CATEGORIES.map((et, i) => <option key={i} value={et}>{et}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Base Currency</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Base currency</label>
                     <select
                       value={currency}
                       onChange={(e) => setCurrency(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2 bg-slate-50 font-black text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 font-black text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       <option value="ETB">ETB - Ethiopian Birr</option>
                       <option value="USD">USD - US Dollar</option>
@@ -817,16 +877,16 @@ export default function AddEditAccountTab({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 px-1 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-1 pt-2">
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       id="chk-multicurrency"
                       checked={multiCurrency}
                       onChange={(e) => setMultiCurrency(e.target.checked)}
-                      className="h-4 w-4 rounded text-blue-600 cursor-pointer"
+                      className="h-4 w-4 rounded text-blue-600 cursor-pointer text-xs"
                     />
-                    <label htmlFor="chk-multicurrency" className="font-bold text-slate-700 cursor-pointer select-none">Multi-currency Mappings</label>
+                    <label htmlFor="chk-multicurrency" className="font-bold text-slate-700 cursor-pointer select-none font-sans text-xs">Enable multi-currency transactions</label>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -835,9 +895,9 @@ export default function AddEditAccountTab({
                       id="chk-reval"
                       checked={revaluationRequired}
                       onChange={(e) => setRevaluationRequired(e.target.checked)}
-                      className="h-4 w-4 rounded text-blue-600 cursor-pointer"
+                      className="h-4 w-4 rounded text-blue-600 cursor-pointer text-xs"
                     />
-                    <label htmlFor="chk-reval" className="font-bold text-slate-700 cursor-pointer select-none">Reval Required</label>
+                    <label htmlFor="chk-reval" className="font-bold text-slate-700 cursor-pointer select-none font-sans text-xs">Revaluation required (IAS 21)</label>
                   </div>
                 </div>
               </div>
@@ -847,16 +907,16 @@ export default function AddEditAccountTab({
             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-3">
               <h4 className="font-sans font-black text-xs uppercase tracking-widest text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
                 <CheckSquare className="w-3.5 h-3.5 text-blue-600" />
-                <span>Mandatory Reporting Dimensions</span>
+                <span>Reporting Dimensions Setup</span>
               </h4>
               <div className="space-y-3 text-xs text-slate-700 font-medium font-sans">
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Cost Center Segment</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Cost center segment</label>
                     <select
                       value={costCenter}
                       onChange={(e) => setCostCenter(e.target.value as DimensionControl)}
-                      className="w-full border border-slate-200 p-2 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 p-2.5 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       <option value="Not Required">Not Required</option>
                       <option value="Optional">Optional</option>
@@ -864,11 +924,11 @@ export default function AddEditAccountTab({
                     </select>
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Project Code segment</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Project segment</label>
                     <select
                       value={project}
                       onChange={(e) => setProject(e.target.value as DimensionControl)}
-                      className="w-full border border-slate-200 p-2 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 p-2.5 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       <option value="Not Required">Not Required</option>
                       <option value="Optional">Optional</option>
@@ -877,13 +937,13 @@ export default function AddEditAccountTab({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Department</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Department segment</label>
                     <select
                       value={department}
                       onChange={(e) => setDepartment(e.target.value as DimensionControl)}
-                      className="w-full border border-slate-200 p-2 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 p-2.5 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       <option value="Not Required">Not Required</option>
                       <option value="Optional">Optional</option>
@@ -891,11 +951,11 @@ export default function AddEditAccountTab({
                     </select>
                   </div>
                   <div>
-                    <label className="block font-bold text-slate-500 mb-1">Segment Reporting Unit</label>
+                    <label className="block font-bold text-slate-500 mb-1 font-sans">Geographical region segment (IAS 14)</label>
                     <select
                       value={segment}
                       onChange={(e) => setSegment(e.target.value as DimensionControl)}
-                      className="w-full border border-slate-200 p-2 rounded-lg bg-slate-50 font-bold text-slate-850 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                      className="w-full border border-slate-200 p-2.5 rounded-lg bg-slate-50 font-bold text-slate-850 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                     >
                       <option value="Not Required">Not Required</option>
                       <option value="Optional">Optional</option>
@@ -905,11 +965,11 @@ export default function AddEditAccountTab({
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1 font-sans text-xs">Profit Center Segment</label>
+                  <label className="block font-bold text-slate-500 mb-1 font-sans text-xs">Profit center segment</label>
                   <select
                     value={profitCenter}
                     onChange={(e) => setProfitCenter(e.target.value as DimensionControl)}
-                    className="w-full border border-slate-200 p-2 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                    className="w-full border border-slate-200 p-2.5 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                   >
                     <option value="Not Required">Not Required</option>
                     <option value="Optional">Optional</option>
@@ -925,22 +985,22 @@ export default function AddEditAccountTab({
           <div className="space-y-4">
             {/* Dynamic Combined summary review panel */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-3xs space-y-3 select-none">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-mono">Input Specification Verification</span>
+              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider font-sans">Account Specification Review</span>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs leading-tight">
                 <div className="bg-white p-3 rounded-lg border border-slate-200/80">
-                  <span className="text-slate-400 text-[10px] font-bold block mb-1">Account Code / Name:</span>
+                  <span className="text-slate-400 text-[10px] font-bold block mb-1 font-sans">Account code and name:</span>
                   <span className="font-bold text-slate-900 font-mono text-[11px] block truncate">[{code}] {name}</span>
                 </div>
                 <div className="bg-white p-3 rounded-lg border border-slate-200/80">
-                  <span className="text-slate-400 text-[10px] font-bold block mb-1">Level Placement Type:</span>
-                  <span className="font-bold text-slate-800 block">L{level} — {accountType} Group ({balance})</span>
+                  <span className="text-slate-400 text-[10px] font-bold block mb-1 font-sans">Hierarchy level and type:</span>
+                  <span className="font-bold text-slate-800 block font-sans">L{level} — {getAccountTypeLabel(accountType)} Group ({balance})</span>
                 </div>
                 <div className="bg-white p-3 rounded-lg border border-slate-200/80">
-                  <span className="text-slate-400 text-[10px] font-bold block mb-1">Sub-ledger Bond:</span>
-                  <span className="font-bold text-indigo-650 font-mono block uppercase text-[10px]">{slType === 'None' ? 'None (Direct general)' : `${slType} Linked Key`}</span>
+                  <span className="text-slate-400 text-[10px] font-bold block mb-1 font-sans">Subledger control mapping:</span>
+                  <span className="font-bold text-indigo-650 font-mono block uppercase text-[10px]">{slType === 'None' ? 'None (Direct Booking)' : `${slType} Linked`}</span>
                 </div>
                 <div className="bg-white p-3 rounded-lg border border-slate-200/80">
-                  <span className="text-slate-400 text-[10px] font-bold block mb-1">Taxation Scheme:</span>
+                  <span className="text-slate-400 text-[10px] font-bold block mb-1 font-sans">Taxation controls mapping:</span>
                   <span className="font-mono font-bold text-slate-700 block truncate text-[10px]">{ethiopianTaxCategory} ({vatCode})</span>
                 </div>
               </div>
@@ -950,58 +1010,58 @@ export default function AddEditAccountTab({
             <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-4">
               <h4 className="font-sans font-black text-xs uppercase tracking-widest text-slate-800 flex items-center gap-1.5 pb-2 border-b border-slate-100">
                 <Workflow className="w-3.5 h-3.5 text-blue-600" />
-                <span>Workflow & Audit Status Setup</span>
+                <span>Workflow & Audit Settings</span>
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1">Active Posting Status</label>
+                  <label className="block font-bold text-slate-500 mb-1 font-sans">System posting status</label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as AccountStatus)}
-                    className="w-full border border-slate-200 p-2 rounded-lg bg-white text-slate-850 font-bold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                    className="w-full border border-slate-200 p-2.5 rounded-lg bg-white text-slate-850 font-bold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                   >
                     <option value="Draft">Draft</option>
                     <option value="Pending Approval">Pending Approval</option>
                     <option value="Active">Active / Approved</option>
-                    <option value="Inactive">Inactive / Suspended</option>
-                    <option value="Blocked">Blocked / Auditor Freeze</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Blocked">Blocked</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1">Approval Workflow Stage</label>
+                  <label className="block font-bold text-slate-500 mb-1 font-sans">Workflow approval stage</label>
                   <select
                     value={approvalStatus}
                     onChange={(e) => setApprovalStatus(e.target.value as ApprovalStatus)}
-                    className="w-full border border-slate-200 p-2 rounded-lg bg-white text-slate-850 font-bold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
+                    className="w-full border border-slate-200 p-2.5 rounded-lg bg-white text-slate-850 font-bold focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer font-sans truncate pr-8"
                   >
                     <option value="Not Submitted">Not Submitted</option>
-                    <option value="Submitted">Submitted (reviewer view)</option>
+                    <option value="Submitted">Submitted</option>
                     <option value="Approved">Approved</option>
                     <option value="Rejected">Rejected</option>
-                    <option value="Returned">Returned</option>
+                    <option value="Returned">Returned / Needs Revision</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-slate-500 mb-1">Record Config Creator</label>
+                  <label className="block font-bold text-slate-500 mb-1 font-sans">Created by user</label>
                   <input
                     type="text"
                     value={createdBy}
                     disabled
-                    className="w-full border border-slate-200 p-2 bg-slate-100 rounded-lg text-slate-500 font-mono font-bold"
+                    className="w-full border border-slate-200 p-2.5 bg-slate-100 rounded-lg text-slate-500 font-mono font-bold"
                   />
                 </div>
 
                 <div className="md:col-span-3">
-                  <label className="block font-bold text-slate-850 mb-1">Audit Trail Alignment Commentary *</label>
+                  <label className="block font-bold text-slate-850 mb-1 font-sans">Internal audit explanation notes *</label>
                   <textarea
                     value={auditTrailNotes}
                     onChange={(e) => setAuditTrailNotes(e.target.value)}
                     rows={2}
                     className="w-full border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 text-xs font-sans font-medium"
-                    placeholder="Provide professional auditing rationalization notes supporting this account level setup segment..."
+                    placeholder="Enter the professional business rationale justifying this account's mapping and IFRS conformance."
                     required
                   />
                 </div>
@@ -1018,7 +1078,7 @@ export default function AddEditAccountTab({
           {warnings.length > 0 ? (
             <span className="text-amber-600 block animate-pulse">⚠️ {warnings.length} compliance checklist alerts outstanding</span>
           ) : (
-            <span className="text-emerald-600">✔ Validation checks conform perfectly</span>
+            <span className="text-emerald-600 font-sans">✔ Validation checks conform perfectly</span>
           )}
         </div>
 
@@ -1039,9 +1099,15 @@ export default function AddEditAccountTab({
               type="button"
               onClick={() => {
                 // Verify core identity inputs before step change
-                if (step === 1 && (!code || !name)) {
-                  alert('Validation notice: Please fill in both Account Code and Account Name before changing pages.');
-                  return;
+                if (step === 1) {
+                  if (!code) {
+                    alert('Validation error: Account Code is required to progress.');
+                    return;
+                  }
+                  if (!name) {
+                    alert('Validation error: Account Name is required to progress.');
+                    return;
+                  }
                 }
                 setStep(prev => prev + 1);
               }}
@@ -1057,7 +1123,7 @@ export default function AddEditAccountTab({
                 className="border border-[#0051d5] text-[#0051d5] hover:bg-[#0051d5]/5 px-4 py-2 rounded-lg text-xs font-sans font-black flex items-center gap-1.5 transition-all shadow-3xs cursor-pointer active:scale-95"
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>Save Account Draft</span>
+                <span>Save Draft Account</span>
               </button>
 
               <button
@@ -1066,7 +1132,7 @@ export default function AddEditAccountTab({
                 className="bg-[#0051d5] text-white hover:bg-[#0042b4] px-5 py-2 rounded-lg text-xs font-sans font-black flex items-center gap-1.5 transition-all shadow-sm cursor-pointer active:scale-95"
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>Submit For Approval</span>
+                <span>Submit for Review</span>
               </button>
             </div>
           )}

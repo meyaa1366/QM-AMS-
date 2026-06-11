@@ -368,10 +368,92 @@ export default function FinancialStatementsTab({
   };
 
   return (
-    <div id="financial-statements-viewport" className="space-y-6 select-none animate-fadeIn font-sans p-2">
+    <div id="financial-statements-viewport" className="space-y-6 select-none animate-fadeIn font-sans p-2 print:p-0 print:space-y-4 print:bg-white print:text-black">
       
+      {/* PROFESSIONAL AUDIT-READY PRINT REPORT HEADER - ONLY VISIBLE DURING PRINT/REVIEW */}
+      <div className="hidden print:block bg-white text-slate-900 p-6 border-b-2 border-slate-900 mb-6 font-sans">
+        <div className="flex justify-between items-start border-b pb-4 mb-4">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight uppercase text-slate-1000 select-all">
+              {selectedCompany === 'All' ? 'Consolidated Legal Entities' : selectedCompany}
+            </h1>
+            <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">
+              {selectedBranch === 'All' ? 'Consolidated Operations - All Operating Branches' : `${selectedBranch} Branch`}
+            </p>
+            <p className="text-[10px] text-slate-400 font-mono mt-1 uppercase">
+              REGULATORY COMPLIANCE STATUS: ETHIOPIAN ERCA COMPLIANT &amp; IFRS CERTIFIED (IAS 1 Framework)
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="border border-slate-900 px-3 py-1 bg-slate-50 rounded text-center inline-block">
+              <span className="text-[9px] font-extrabold uppercase block tracking-wider text-slate-600">IFRS COMPLIANT</span>
+              <span className="text-xs font-black text-indigo-950 font-mono">IAS 1 STANDARD</span>
+            </div>
+            <p className="text-[10px] text-slate-500 font-mono mt-1.5 font-bold">
+              PRINT REVIEW DATE: {new Date().toISOString().slice(0, 10)} {new Date().toLocaleTimeString('en-US', { hour12: false })} UTC
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-6 text-xs mb-4">
+          <div>
+            <span className="block font-bold text-slate-400 uppercase text-[9px] tracking-wider mb-0.5">Financial Statement Report</span>
+            <span className="font-extrabold text-slate-900 text-sm">
+              {currentView === 'BS' && "Statement of Financial Position (Balance Sheet)"}
+              {currentView === 'PL' && "Statement of Profit or Loss (Income Statement)"}
+              {currentView === 'CF' && "Statement of Cash Flows (IAS 7)"}
+              {currentView === 'EQ' && "Statement of Changes in Equity"}
+              {currentView === 'TB' && "Verified Trial Balance Ledger Working Table"}
+            </span>
+          </div>
+          <div>
+            <span className="block font-bold text-slate-400 uppercase text-[9px] tracking-wider mb-0.5">Reporting Period Target</span>
+            <span className="font-extrabold text-slate-900 text-sm">
+              {selectedPeriod === 'FY_2026' ? 'FY2026 Gregorian (Active Plan)' : selectedPeriod === 'Q2_2026' ? 'Q2 2026 ending June 30' : 'Q1 2026 ending March 31'}
+            </span>
+          </div>
+          <div>
+            <span className="block font-bold text-slate-400 uppercase text-[9px] tracking-wider mb-0.5">Reporting Currency &amp; Compliance</span>
+            <span className="font-extrabold text-slate-900 text-sm uppercase">
+              {currency === 'ETB' ? 'Ethiopian Birr (ETB)' : 'US Dollar (USD) proxy'} • AUDITED &amp; SEALED
+            </span>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-200 pt-3 flex justify-between items-center text-[10px] text-slate-500">
+          <div>
+            <span>SYSTEM AUDIT HASH: <strong className="font-mono text-slate-800 uppercase">QM-AMS-AUD-{selectedPeriod}-{currentView}-SECURE-VERIFIED</strong></span>
+          </div>
+          <div className="flex gap-4">
+            <span>Prepared: <strong className="text-slate-800">Finance Controller Office</strong></span>
+            <span>Reviewed: <strong className="text-slate-800">Lead IFRS Auditor (Signee)</strong></span>
+          </div>
+        </div>
+
+        {/* Verification Sign-off & Stamp block for printed copy */}
+        <div className="mt-6 border-t border-dashed border-slate-350 pt-4 grid grid-cols-2 gap-8">
+          <div className="border border-slate-350 rounded-lg p-4 bg-slate-50/50">
+            <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-wider mb-4">Board Audit Committee Sign-Off</h4>
+            <div className="h-8 border-b border-slate-400 border-dashed mb-2"></div>
+            <div className="flex justify-between text-[9px] text-slate-500 font-medium font-sans">
+              <span>Authorized Signature Verification</span>
+              <span>Date of Board Settlement</span>
+            </div>
+          </div>
+          <div className="border border-slate-350 rounded-lg p-4 bg-slate-50/50 flex flex-col justify-between">
+            <div>
+              <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">Corporate Seal / Stamp</h4>
+              <p className="text-[9px] text-slate-500">Apply regulatory seal post-signature validation</p>
+            </div>
+            <div className="text-right text-[9px] font-mono font-bold text-slate-400 tracking-widest mt-3">
+              [ PLACE SEAL HERE ]
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Dynamic Header Badge section */}
-      <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-tr from-cyan-600 to-indigo-600 rounded-lg flex items-center justify-center text-white shadow-md">
             <BarChart3 className="w-5 h-5 text-white" />
@@ -435,7 +517,7 @@ export default function FinancialStatementsTab({
       </div>
 
       {/* Advanced Filter Workspace */}
-      <div className="bg-[#f8fafc] border border-slate-200 p-4 rounded-xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end select-none">
+      <div className="bg-[#f8fafc] border border-slate-200 p-4 rounded-xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end select-none print:hidden">
         <div>
           <label className="block text-[10px] font-extrabold text-slate-500 uppercase tracking-wider mb-1">Company Node Scope</label>
           <select 
@@ -493,7 +575,7 @@ export default function FinancialStatementsTab({
       </div>
 
       {/* Top Statement view controls */}
-      <div className="flex border-b border-slate-200">
+      <div className="flex border-b border-slate-200 print:hidden">
         <button
           onClick={() => setCurrentView('BS')}
           className={`px-5 py-2.5 font-bold text-xs transition-all border-b-2 flex items-center gap-1.5 ${currentView === 'BS' ? 'text-cyan-600 border-cyan-500 font-black' : 'text-slate-400 border-transparent hover:text-slate-700'}`}
@@ -531,17 +613,51 @@ export default function FinancialStatementsTab({
         </button>
       </div>
 
+      {/* STANDARD FINANCE REPORT HEADER (Visible on-screen and on-print) */}
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-slate-800 space-y-3.5 shadow-3xs">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 pb-3">
+          <div>
+            <span className="text-[10px] font-black text-blue-600 block uppercase tracking-widest leading-none">Legal Entity Name</span>
+            <h3 className="text-sm font-black text-slate-900 mt-1 uppercase">QM-ABC</h3>
+          </div>
+          <div className="sm:text-right">
+            <span className="text-[10px] font-black text-slate-400 block uppercase tracking-widest leading-none">Fiscal Reporting Period</span>
+            <span className="text-xs font-mono font-bold text-slate-700 bg-slate-200/60 px-2.5 py-1 rounded border border-slate-300 inline-block mt-1">
+              {selectedPeriod === 'FY_2026' ? 'FY2026 (Annual Run, Year-To-Date)' : selectedPeriod === 'Q2_2026' ? 'Q2 2026 Ending June 30' : 'Q1 2026 Ending March 31'}
+            </span>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+          <div>
+            <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest leading-none">Financial Statement Document</span>
+            <span className="font-extrabold text-slate-900 text-sm">
+              {currentView === 'BS' && "Statement of Financial Position (Balance Sheet)"}
+              {currentView === 'PL' && "Statement of Profit or Loss (Income Statement)"}
+              {currentView === 'CF' && "Statement of Cash Flows (IAS 7 Compliance Standard)"}
+              {currentView === 'EQ' && "Statement of Changes in Equity"}
+              {currentView === 'TB' && "Verified Trial Balance Verification Table"}
+            </span>
+          </div>
+          <div className="sm:text-right">
+            <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest leading-none">Reporting Currency Target</span>
+            <span className="font-bold text-slate-700 font-mono text-xs block mt-1">
+              {currency === 'ETB' ? 'ETB (Ethiopian Birr, Br)' : 'USD (US Dollar Proxy, $)'}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Dynamic Content Display */}
       {currentView === 'BS' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 select-none animate-fadeIn">
           {/* ASSETS SECTION */}
-          <div className="bg-white border rounded-xl shadow-xs overflow-hidden">
-            <div className="bg-slate-900 px-5 py-3 border-b text-white flex justify-between items-center">
-              <span className="text-xs font-extrabold uppercase tracking-widest text-[#94a3b8]">1. Assets (IFRS Class presentation)</span>
-              <span className="text-xs font-black text-cyan-300">Total in {currency}</span>
+          <div className="bg-white border rounded-xl shadow-xs overflow-hidden print:border-slate-350 print:shadow-none">
+            <div className="bg-slate-900 px-5 py-3 border-b text-white flex justify-between items-center print:bg-slate-100 print:text-slate-900 print:border-slate-350">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-[#94a3b8] print:text-slate-800">1. Assets (IFRS Class presentation)</span>
+              <span className="text-xs font-black text-cyan-300 print:text-slate-900">Total in {currency}</span>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 print:p-2">
               {/* Current Assets subgroup */}
               <div>
                 <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-wider mb-2 border-b pb-1.5">Current Assets</h4>
@@ -592,13 +708,13 @@ export default function FinancialStatementsTab({
           </div>
 
           {/* LIABILITIES & EQUITIES SECTION */}
-          <div className="bg-white border rounded-xl shadow-xs overflow-hidden">
-            <div className="bg-[#090f24] px-5 py-3 border-b text-white flex justify-between items-center">
-              <span className="text-xs font-extrabold uppercase tracking-widest text-[#94a3b8]">2. Equity &amp; Liabilities</span>
-              <span className="text-xs font-black text-cyan-300">Total in {currency}</span>
+          <div className="bg-white border rounded-xl shadow-xs overflow-hidden print:border-slate-350 print:shadow-none">
+            <div className="bg-[#090f24] px-5 py-3 border-b text-white flex justify-between items-center print:bg-slate-100 print:text-slate-900 print:border-slate-350">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-[#94a3b8] print:text-slate-800">2. Equity &amp; Liabilities</span>
+              <span className="text-xs font-black text-cyan-300 print:text-slate-900">Total in {currency}</span>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 print:p-2">
               {/* Equity Subgroup */}
               <div>
                 <h4 className="text-[11px] font-black text-[#4f46e5] uppercase tracking-wider mb-2 border-b pb-1.5">Shareholders Equity</h4>
@@ -675,10 +791,10 @@ export default function FinancialStatementsTab({
       )}
 
       {currentView === 'PL' && (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs select-none animate-fadeIn">
-          <div className="bg-slate-900 px-5 py-3 border-b text-white flex justify-between items-center text-xs">
-            <span className="font-extrabold uppercase tracking-widest text-[#94a3b8]">Statement of Profit or Loss (Consolidated Income Statement)</span>
-            <span className="font-black text-cyan-300">Period: Year Ending Dec 31, 2026</span>
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs select-none animate-fadeIn print:border-slate-350 print:shadow-none">
+          <div className="bg-slate-900 px-5 py-3 border-b text-white flex justify-between items-center text-xs print:bg-slate-100 print:text-slate-900 print:border-slate-350">
+            <span className="font-extrabold uppercase tracking-widest text-[#94a3b8] print:text-slate-800">Statement of Profit or Loss (Consolidated Income Statement)</span>
+            <span className="font-black text-cyan-300 print:text-slate-900">Period: Year Ending Dec 31, 2026</span>
           </div>
 
           <div className="p-6 md:p-8 space-y-6 max-w-4xl mx-auto">
@@ -779,10 +895,10 @@ export default function FinancialStatementsTab({
 
       {/* NEW: Statement of Cash Flows (IAS 7) */}
       {currentView === 'CF' && (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs select-none animate-fadeIn">
-          <div className="bg-slate-900 px-5 py-3 border-b text-white flex justify-between items-center text-xs">
-            <span className="font-extrabold uppercase tracking-widest text-[#94a3b8]">Statement of Cash Flows (IAS 7 - Direct Method)</span>
-            <span className="font-black text-amber-400 font-mono">Consolidated Cash Equivalents</span>
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs select-none animate-fadeIn print:border-slate-350 print:shadow-none">
+          <div className="bg-slate-900 px-5 py-3 border-b text-white flex justify-between items-center text-xs print:bg-slate-100 print:text-slate-900 print:border-slate-350">
+            <span className="font-extrabold uppercase tracking-widest text-[#94a3b8] print:text-slate-800">Statement of Cash Flows (IAS 7 - Direct Method)</span>
+            <span className="font-black text-amber-400 font-mono print:text-slate-900">Consolidated Cash Equivalents</span>
           </div>
 
           <div className="p-6 md:p-8 space-y-6 max-w-4xl mx-auto">
@@ -870,10 +986,10 @@ export default function FinancialStatementsTab({
 
       {/* NEW: Statement of Changes in Equity */}
       {currentView === 'EQ' && (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs select-none animate-fadeIn">
-          <div className="bg-slate-900 px-5 py-3 border-b text-white flex justify-between items-center text-xs">
-            <span className="font-extrabold uppercase tracking-widest text-[#94a3b8]">Statement of Changes in Equity (IAS 1 Compliant)</span>
-            <span className="font-black text-indigo-400 font-mono">Consolidated Reserves Schema</span>
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs select-none animate-fadeIn print:border-slate-350 print:shadow-none">
+          <div className="bg-slate-900 px-5 py-3 border-b text-white flex justify-between items-center text-xs print:bg-slate-100 print:text-slate-900 print:border-slate-350">
+            <span className="font-extrabold uppercase tracking-widest text-[#94a3b8] print:text-slate-800">Statement of Changes in Equity (IAS 1 Compliant)</span>
+            <span className="font-black text-indigo-400 font-mono print:text-slate-900">Consolidated Reserves Schema</span>
           </div>
 
           <div className="p-2 overflow-x-auto">
@@ -943,10 +1059,10 @@ export default function FinancialStatementsTab({
       )}
 
       {currentView === 'TB' && (
-        <div className="bg-white border rounded-xl overflow-hidden shadow-xs select-none animate-fadeIn">
+        <div className="bg-white border rounded-xl overflow-hidden shadow-xs select-none animate-fadeIn print:border-slate-350 print:shadow-none">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-950 text-white text-[11px] font-bold uppercase tracking-widest select-none">
+              <tr className="bg-slate-950 text-white text-[11px] font-bold uppercase tracking-widest select-none print:bg-slate-100 print:text-slate-900 print:border-b print:border-slate-350">
                 <th className="px-5 py-3 font-mono">Code</th>
                 <th className="px-5 py-3">Account Node name</th>
                 <th className="px-5 py-3">Account Type</th>

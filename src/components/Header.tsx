@@ -10,6 +10,7 @@ interface HeaderProps {
   onExport: (format: 'PDF' | 'Excel') => void;
   notificationsCount: number;
   onNotificationsClick: () => void;
+  sidebarCollapsed?: boolean;
 }
 
 export default function Header({
@@ -20,7 +21,8 @@ export default function Header({
   onNewEntryOpen,
   onExport,
   notificationsCount,
-  onNotificationsClick
+  onNotificationsClick,
+  sidebarCollapsed = false
 }: HeaderProps) {
   // Check if current screen is under the reporting umbrella
   // Any of the financial statement pages count as reporting
@@ -35,7 +37,9 @@ export default function Header({
   ];
 
   return (
-    <header className="flex items-center justify-between h-16 px-6 ml-[280px] w-[calc(100%-280px)] bg-slate-50 dark:bg-slate-900 border-b border-[#c5c6cd] dark:border-slate-800 fixed top-0 left-0 z-40 transition-colors select-none">
+    <header className={`flex items-center justify-between h-16 px-6 bg-slate-50 border-b border-slate-200 fixed top-0 left-0 z-40 transition-all duration-300 select-none ${
+      sidebarCollapsed ? 'ml-[72px] w-[calc(100%-72px)]' : 'ml-[280px] w-[calc(100%-280px)]'
+    }`}>
       {/* Search Bar & Primary Report Switches */}
       <div className="flex items-center gap-6 flex-1 min-w-0">
         <div className="relative flex items-center bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-[#c5c6cd] dark:border-slate-705 shadow-xs shrink-0">
@@ -147,12 +151,12 @@ export default function Header({
         <div className="flex items-center gap-2 pl-1 select-none">
           <div className="relative shrink-0">
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-600 to-indigo-650 text-white flex items-center justify-center text-xs font-black font-mono shadow-inner">
-              MZ
+              LA
             </div>
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-50 dark:border-slate-900 shadow-md animate-pulse" title="System Online"></span>
           </div>
           <div className="hidden lg:block text-left leading-none">
-            <p className="text-xs font-bold text-slate-800 dark:text-slate-100">MZerihun</p>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-100">Lead Auditor</p>
             <p className="text-[9px] text-[#0051d5] dark:text-indigo-400 font-extrabold uppercase tracking-wider font-mono mt-0.5 leading-none">
               Lead Fin Auditor
             </p>

@@ -313,7 +313,7 @@ export default function JournalRegisterTab({
       creditAccountName: creditLine ? creditLine.accountName : 'Dynamic Credits',
       amount: formTotals.totalDebit,
       memo: `${transactionType} - ${referenceNo}. Memo: ${lines[0]?.description || voucherNotes}`,
-      postedBy: 'senior_accountant@qelemeda.et',
+      postedBy: 'senior_accountant@abc.et',
       status: 'POSTED_BALANCED',
       company,
       branch,
@@ -329,7 +329,7 @@ export default function JournalRegisterTab({
       onAddAuditLog({
         id: `AUD-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'senior_accountant@qelemeda.et',
+        user: 'senior_accountant@abc.et',
         action: 'POST_JOURNAL_ENTRY',
         entityType: 'Transactional Voucher',
         entityKey: generatedVoucherID,

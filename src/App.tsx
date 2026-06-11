@@ -12,6 +12,8 @@ import LedgerCardTab from './components/LedgerCardTab';
 import JournalRegisterTab from './components/JournalRegisterTab';
 import FiscalPeriodTab from './components/FiscalPeriodTab';
 import DevImplementationGuideTab from './components/DevImplementationGuideTab';
+import BudgetModuleTab from './components/BudgetModuleTab';
+import APARSubmoduleTab from './components/APARSubmoduleTab';
 import { 
   IFRSClassificationTab, 
   EthiopianTaxTab, 
@@ -63,6 +65,7 @@ export default function App() {
 
   // Interactive filter on Audit Trail log
   const [auditFilterCode, setAuditFilterCode] = useState<string>('');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
 
   // Dropdown filter key for Lookup Data
   const [lookupGroupFilter, setLookupGroupFilter] = useState<string>('All');
@@ -410,48 +413,57 @@ export default function App() {
   };
 
   return (
-    <div id="finance-dashboard-root" className="min-h-screen bg-[#fcfdff]">
+    <div id="finance-dashboard-root" className="min-h-screen bg-slate-50 print:bg-white text-slate-900 print:text-black">
       {/* Grouped Sidebar - Replaced Post Journal button with dynamic operations */}
-      <Sidebar 
-        activeTab={activeTab}
-        onNavigate={(tab) => {
-          setActiveTab(tab);
-          setSearchQuery('');
-        }}
-        onCreateAccount={handleSidebarCreateAccount}
-        onImportCOA={handleSidebarImportCOA}
-        onValidateSetup={handleSidebarValidateSetup}
-        onExportSetup={handleSidebarExportSetup}
-      />
+      <div className="print:hidden">
+        <Sidebar 
+          activeTab={activeTab}
+          onNavigate={(tab) => {
+            setActiveTab(tab);
+            setSearchQuery('');
+          }}
+          onCreateAccount={handleSidebarCreateAccount}
+          onImportCOA={handleSidebarImportCOA}
+          onValidateSetup={handleSidebarValidateSetup}
+          onExportSetup={handleSidebarExportSetup}
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+      </div>
 
       {/* Header bar */}
-      <Header 
-        activeScreen={activeTab}
-        onScreenChange={(screen) => {
-          setActiveTab(screen);
-          setSearchQuery('');
-        }}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onNewEntryOpen={() => {
-          setActiveTab('add-edit-account');
-        }}
-        onExport={(format) => {
-          alert(`Generating compliant IFRS statement in ${format} format... Compiled from dynamic ledger mappings!`);
-        }}
-        notificationsCount={12}
-        onNotificationsClick={() => {
-          alert("QM AMS Auditing Hub: 12 corporate ledger accounts updated within ERCA thresholds.");
-        }}
-      />
+      <div className="print:hidden">
+        <Header 
+          activeScreen={activeTab}
+          onScreenChange={(screen) => {
+            setActiveTab(screen);
+            setSearchQuery('');
+          }}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onNewEntryOpen={() => {
+            setActiveTab('add-edit-account');
+          }}
+          onExport={(format) => {
+            alert(`Generating compliant IFRS statement in ${format} format... Compiled from dynamic ledger mappings!`);
+          }}
+          notificationsCount={12}
+          onNotificationsClick={() => {
+            alert("QM AMS Auditing Hub: 12 corporate ledger accounts updated within ERCA thresholds.");
+          }}
+          sidebarCollapsed={sidebarCollapsed}
+        />
+      </div>
 
       {/* Main Content Workspace viewport */}
-      <main className="pl-[280px] pt-16 pb-20 select-none">
+      <main className={`transition-all duration-300 select-none print:pl-0 print:pt-4 print:pb-0 ${
+        sidebarCollapsed ? 'pl-[72px]' : 'pl-[280px]'
+      } pt-16 pb-20`}>
         {/* Floating Journal trigger */}
-        <div className="bg-slate-100/80 px-6 py-2.5 border-b border-outline-variant/60 flex justify-between items-center text-xs text-slate-700">
+        <div className="bg-slate-100/80 px-6 py-2.5 border-b border-outline-variant/60 flex justify-between items-center text-xs text-slate-700 print:hidden">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-            <span className="font-medium text-slate-600">IFRS Active Schema: <span className="font-bold text-slate-800">QM AMS Audit Group Workspace (v4.1)</span></span>
+            <span className="font-medium text-slate-600">IFRS Active Schema: <span className="font-bold text-slate-800">QM AMS (v4.1)</span></span>
           </div>
 
           <button
@@ -567,6 +579,14 @@ export default function App() {
           {/* TAB 8: Subsidiary Ledger Setup */}
           {activeTab === 'subledger-setup' && <SubsidiaryLedgerTab />}
 
+          {/* TAB 8B: AP/AR Subledger Subsections */}
+          {activeTab === 'apar-overview' && <APARSubmoduleTab initialCategory="Overview" initialSheet="AP_AR_Module_Dashboard" />}
+          {activeTab === 'apar-suppliers' && <APARSubmoduleTab initialCategory="Suppliers" initialSheet="Supplier_Register_Page" />}
+          {activeTab === 'apar-customers' && <APARSubmoduleTab initialCategory="Customers" initialSheet="Customer_Register_Page" />}
+          {activeTab === 'apar-gating' && <APARSubmoduleTab initialCategory="Gating" initialSheet="Supplier_Transaction_Gating" />}
+          {activeTab === 'apar-controls' && <APARSubmoduleTab initialCategory="Control" initialSheet="AP_Setup_Control" />}
+          {activeTab === 'apar-compliance' && <APARSubmoduleTab initialCategory="Compliance" initialSheet="Tax_Compliance_Mapping" />}
+
           {/* TAB 9: Posting Control Matrix */}
           {activeTab === 'posting-matrix' && (
             <VoucherRegistryView 
@@ -599,6 +619,25 @@ export default function App() {
           {/* TAB 14: Audit Trail */}
           {activeTab === 'audit-trail' && (
             <AuditTrailTab auditLogs={auditLogs} />
+          )}
+
+          {/* TAB 15: Budget Setups and Controls */}
+          {activeTab === 'budget-setup' && (
+            <BudgetModuleTab 
+              onAddAuditLog={(log) => {
+                const mapped: AuditLogEntry = {
+                  id: log.id,
+                  timestamp: log.timestamp,
+                  user: log.user,
+                  action: log.action,
+                  entityType: log.entityType as any,
+                  entityKey: log.entityKey,
+                  description: log.description
+                };
+                setAuditLogs(prev => [mapped, ...prev]);
+                triggerToast(`Budget log: ${log.description}`, 'success');
+              }}
+            />
           )}
 
         </div>
