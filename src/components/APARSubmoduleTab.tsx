@@ -27,6 +27,7 @@ import {
   BookOpen,
   DollarSign,
   ChevronRight,
+  ChevronDown,
   TrendingDown,
   TrendingUp,
   DownloadCloud,
@@ -51,6 +52,116 @@ import {
   SupplierRecord,
   CustomerRecord
 } from './aparData';
+
+import ReportHeaderCard from './ReportHeaderCard';
+
+// --- Date calculation & Aging Report helpers ---
+function getPaymentTermDays(term: string): number {
+  if (!term) return 30;
+  const lower = term.toLowerCase();
+  if (lower.includes('immediate')) return 0;
+  if (lower.includes('15')) return 15;
+  if (lower.includes('30')) return 30;
+  if (lower.includes('45')) return 45;
+  if (lower.includes('60')) return 60;
+  if (lower.includes('90')) return 90;
+  return 30; // default to Net 30
+}
+
+function parseCutoffDate(dateStr: string): Date {
+  const parts = dateStr.split(' ');
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const monthStr = parts[1].toLowerCase();
+    const year = parseInt(parts[2], 10);
+    
+    const months: Record<string, number> = {
+      january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+      may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7,
+      sep: 8, september: 8, oct: 9, october: 9, nov: 10, november: 10,
+      dec: 11, december: 11
+    };
+    
+    const month = months[monthStr] !== undefined ? months[monthStr] : 11;
+    return new Date(year, month, day);
+  }
+  return new Date(2026, 11, 31);
+}
+
+interface InvoiceItem {
+  invoiceNo: string;
+  invoiceDate: Date;
+  dueDate: Date;
+  amount: number;
+  daysOverdue: number;
+}
+
+function generateOutstandingInvoices(
+  code: string,
+  balance: number,
+  paymentTerm: string,
+  cutoffDate: Date
+): InvoiceItem[] {
+  if (balance <= 0) return [];
+
+  const termDays = getPaymentTermDays(paymentTerm);
+  
+  // Deterministic count based on vendor/customer code string
+  const charSum = code.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const invoiceCount = (charSum % 3) + 2; // generates 2, 3, or 4 invoices
+  
+  const invoices: InvoiceItem[] = [];
+  let remainingAmount = balance;
+  
+  // Custom delays in days before cutoff from most recent to oldest
+  // This distributes outstanding amounts to current vs overdue categories
+  const targetDelays = [10, 40, 70, 110]; 
+  
+  // Distribute percentages. Total = 100%
+  const targetPct = [0.40, 0.35, 0.15, 0.10];
+
+  for (let i = 0; i < invoiceCount; i++) {
+    const isLast = i === invoiceCount - 1;
+    let invAmount = 0;
+    
+    if (isLast) {
+      invAmount = remainingAmount;
+    } else {
+      invAmount = Math.round((balance * targetPct[i]) * 100) / 100;
+      if (invAmount > remainingAmount) {
+        invAmount = remainingAmount;
+      }
+    }
+    
+    if (invAmount <= 0.01) break;
+    remainingAmount = Math.max(0, remainingAmount - invAmount);
+    
+    // Offset in days before cutoff date to place invoice date
+    const delay = targetDelays[i % targetDelays.length];
+    
+    const invoiceDate = new Date(cutoffDate.getTime() - delay * 24 * 60 * 60 * 1000);
+    const dueDate = new Date(invoiceDate.getTime() + termDays * 24 * 60 * 60 * 1000);
+    
+    const diffTime = cutoffDate.getTime() - dueDate.getTime();
+    const daysOverdue = Math.max(0, Math.ceil(diffTime / (24 * 60 * 60 * 1000)));
+
+    const seq = i + 1;
+    invoices.push({
+      invoiceNo: `INV-${code.replace('SUPP-', '').replace('CUST-', '')}-26${seq.toString().padStart(2, '0')}`,
+      invoiceDate,
+      dueDate,
+      amount: invAmount,
+      daysOverdue: daysOverdue
+    });
+  }
+  
+  return invoices;
+}
+
+function formatDateString(d: Date): string {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 export default function APARSubmoduleTab({
   initialCategory,
@@ -81,6 +192,13 @@ export default function APARSubmoduleTab({
   const [customerForm, setCustomerForm] = useState<Partial<CustomerRecord>>({});
   const [formSearch, setFormSearch] = useState('');
   const [formFilterGroup, setFormFilterGroup] = useState('All');
+
+  // Aging state parameters
+  const [agingCurrency, setAgingCurrency] = useState<'ETB' | 'USD'>('ETB');
+  const [agingDate, setAgingDate] = useState<string>('31 December 2026');
+  const [agingSearch, setAgingSearch] = useState<string>('');
+  const [agingBranch, setAgingBranch] = useState<string>('Addis Ababa Central');
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   // Gating simulation tester states
   const [gateTestType, setGateTestType] = useState<'Supplier Invoice' | 'Customer Invoice' | 'Supplier Payment' | 'Sales Order'>('Supplier Invoice');
@@ -116,6 +234,7 @@ export default function APARSubmoduleTab({
     { id: 'Overview', label: '📖 Introduction & Dashboard', sheets: ['README', 'AP_AR_Module_Dashboard'] },
     { id: 'Suppliers', label: '🚚 Supplier Registry', sheets: ['Supplier_Register_Page', 'Supplier_Add_Edit_Form'] },
     { id: 'Customers', label: '🤝 Customer Registry', sheets: ['Customer_Register_Page', 'Customer_Add_Edit_Form'] },
+    { id: 'Aging', label: '⏳ Aging Reports', sheets: ['AP_Aging_Report', 'AR_Aging_Report'] },
     { id: 'Control', label: '⚙️ Setup Controls', sheets: ['AP_Setup_Control', 'AR_Setup_Control'] },
     { id: 'Gating', label: '🛑 Gating Rules', sheets: ['Supplier_Transaction_Gating', 'Customer_Transaction_Gating'] },
     { id: 'Enums', label: '📚 Master Lists', sheets: ['Field_Specification', 'Enum_Master', 'Lookup_Master', 'Lookup_Data'] },
@@ -210,7 +329,7 @@ export default function APARSubmoduleTab({
     }
 
     const payload: SupplierRecord = {
-      company: 'QM-ABC',
+      company: 'MS-PLC',
       code: supplierForm.code || `SUPP-0${suppliers.length + 1}`,
       name: supplierForm.name,
       shortName: supplierForm.shortName || supplierForm.name.slice(0, 10),
@@ -262,7 +381,7 @@ export default function APARSubmoduleTab({
     }
 
     const payload: CustomerRecord = {
-      company: 'QM-ABC',
+      company: 'MS-PLC',
       code: customerForm.code || `CUST-0${customers.length + 1}`,
       name: customerForm.name,
       shortName: customerForm.shortName || customerForm.name.slice(0, 10),
@@ -427,7 +546,7 @@ export default function APARSubmoduleTab({
             <h2 className="text-xl font-sans font-black text-slate-900 tracking-tight flex items-center gap-2">
               AP & AR Submodule Setup Workspace
               <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200 uppercase">
-                Enterprise Spec (QM-ABC)
+                Enterprise Spec (Mesfin PLC)
               </span>
             </h2>
             <p className="text-xs text-slate-500 font-medium mt-1">
@@ -492,7 +611,7 @@ export default function APARSubmoduleTab({
               <div className="border-b pb-4 flex justify-between items-start">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 font-sans">Workbook Purpose & AP/AR Lifecycle Architecture</h3>
-                  <p className="text-xs text-slate-500 font-medium mt-1">Welcome to the central design specification framework for the QM-ABC Financial Submodule ledger system.</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Welcome to the central design specification framework for the Mesfin PLC Financial Submodule ledger system.</p>
                 </div>
                 <span className="text-[11px] font-mono font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-xl">Sheet #1</span>
               </div>
@@ -511,7 +630,7 @@ export default function APARSubmoduleTab({
                   <h4 className="font-bold text-slate-900 font-sans text-sm border-l-4 border-emerald-500 pl-2">Setup Dependency Sequence</h4>
                   <p className="italic text-slate-500 mb-1">Strict implementation order for financial auditors:</p>
                   <ol className="list-decimal list-inside space-y-1.5 font-medium">
-                    <li>Company Operating Node (QM-ABC Framework)</li>
+                    <li>Company Operating Node (Mesfin PLC Framework)</li>
                     <li>Operational Branches Registry (e.g. AA-01, AD-01)</li>
                     <li>Fiscal Year & Period Structure (P01 to P12 Open)</li>
                     <li>Chart of Accounts (General Ledger Root Nodes)</li>
@@ -522,6 +641,770 @@ export default function APARSubmoduleTab({
               </div>
             </div>
           )}
+
+          {/* AP AGING REPORT FOR INTEGRATED SUBLEDGER */}
+          {activeSheet === 'AP_Aging_Report' && (() => {
+            const rate = agingCurrency === 'USD' ? 120 : 1;
+            const cutoff = parseCutoffDate(agingDate);
+            const updatedItems = suppliers.map(s => {
+              const bal = s.balance;
+              const invoices = generateOutstandingInvoices(s.code, bal, s.paymentTerm, cutoff);
+              
+              let currentVal = 0;
+              let age30Val = 0;
+              let age60Val = 0;
+              let age90Val = 0;
+              let age120Val = 0;
+              
+              invoices.forEach(inv => {
+                const amt = inv.amount / rate;
+                if (inv.daysOverdue <= 0) {
+                  currentVal += amt;
+                } else if (inv.daysOverdue <= 30) {
+                  age30Val += amt;
+                } else if (inv.daysOverdue <= 60) {
+                  age60Val += amt;
+                } else if (inv.daysOverdue <= 90) {
+                  age90Val += amt;
+                } else {
+                  age120Val += amt;
+                }
+              });
+
+              const total = bal / rate;
+
+              return {
+                ...s,
+                total,
+                current: currentVal,
+                age30: age30Val,
+                age60: age60Val,
+                age90: age90Val,
+                age120: age120Val,
+                invoices
+              };
+            }).filter(s => {
+              const matchSearch = s.name.toLowerCase().includes(agingSearch.toLowerCase()) ||
+                                  s.code.toLowerCase().includes(agingSearch.toLowerCase()) ||
+                                  s.tin.includes(agingSearch);
+              return matchSearch;
+            });
+
+            const grandTotal = updatedItems.reduce((acc, val) => acc + val.total, 0);
+            const sumCurrent = updatedItems.reduce((acc, val) => acc + val.current, 0);
+            const sum30 = updatedItems.reduce((acc, val) => acc + val.age30, 0);
+            const sum60 = updatedItems.reduce((acc, val) => acc + val.age60, 0);
+            const sum90 = updatedItems.reduce((acc, val) => acc + val.age90, 0);
+            const sum120 = updatedItems.reduce((acc, val) => acc + val.age120, 0);
+
+            const pctCurrent = grandTotal > 0 ? (sumCurrent / grandTotal) * 100 : 0;
+            const pct30 = grandTotal > 0 ? (sum30 / grandTotal) * 100 : 0;
+            const pct60 = grandTotal > 0 ? (sum60 / grandTotal) * 100 : 0;
+            const pct90 = grandTotal > 0 ? (sum90 / grandTotal) * 100 : 0;
+            const pct120 = grandTotal > 0 ? (sum120 / grandTotal) * 100 : 0;
+
+            const handleExportCSV = () => {
+              let csvContent = "data:text/csv;charset=utf-8,";
+              csvContent += "Supplier Code,Supplier Name,TIN Number,Branch,Currency,Total Outstanding,Current (0-30),1-30 Days,31-60 Days,61-90 Days,Over 90 Days,Payment Hold Status\r\n";
+              
+              updatedItems.forEach(s => {
+                csvContent += `"${s.code}","${s.name}","${s.tin}","${agingBranch}","${agingCurrency}",${s.total.toFixed(2)},${s.current.toFixed(2)},${s.age30.toFixed(2)},${s.age60.toFixed(2)},${s.age90.toFixed(2)},${s.age120.toFixed(2)},"${s.paymentHold}"\r\n`;
+              });
+
+              csvContent += `"-TOTAL-","-","-","-","${agingCurrency}",${grandTotal.toFixed(2)},${sumCurrent.toFixed(2)},${sum30.toFixed(2)},${sum60.toFixed(2)},${sum90.toFixed(2)},${sum120.toFixed(2)},"-"\r\n`;
+
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement("a");
+              link.setAttribute("href", encodedUri);
+              link.setAttribute("download", `AP_Aging_Report_${agingDate.replace(/ /g, '_')}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              triggerToast("Success: AP Aging Report exported to CSV registry format successfully.");
+            };
+
+            const handlePrint = () => {
+              window.print();
+            };
+
+            return (
+              <div className="space-y-6">
+                <ReportHeaderCard
+                  defaultReportName="AP Aging Report"
+                  defaultPeriod={`As of ${agingDate}`}
+                  defaultBranch={agingBranch}
+                  currency={agingCurrency}
+                  onCurrencyChange={(c) => setAgingCurrency(c)}
+                  onPrint={handlePrint}
+                  onExportExcel={handleExportCSV}
+                />
+
+                <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs grid grid-cols-1 md:grid-cols-4 gap-4 print:hidden">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Search Vendor / Code</label>
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 animate-pulse" />
+                      <input
+                        type="text"
+                        value={agingSearch}
+                        onChange={(e) => setAgingSearch(e.target.value)}
+                        placeholder="Filter by code, TIN, name..."
+                        className="w-full pl-9 pr-3 py-2 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-500 font-sans"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Aging Baseline Cutoff</label>
+                    <select
+                      value={agingDate}
+                      onChange={(e) => setAgingDate(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-sans text-slate-800"
+                    >
+                      <option value="31 December 2026">31 December 2026 (YTD End)</option>
+                      <option value="30 September 2026">30 September 2026 (Q3 End)</option>
+                      <option value="30 June 2026">30 June 2026 (Q2 End)</option>
+                      <option value="31 March 2026">31 March 2026 (Q1 End)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Audit Operating Branch</label>
+                    <select
+                      value={agingBranch}
+                      onChange={(e) => setAgingBranch(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-indigo-500 bg-white font-sans text-slate-800"
+                    >
+                      <option value="All Operating Branches">All Operating Branches</option>
+                      <option value="Addis Ababa Central">Addis Ababa Central Branch</option>
+                      <option value="Hawassa Hub">Hawassa Hub Branch</option>
+                      <option value="Gondar West">Gondar West Branch</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <button
+                      type="button"
+                      onClick={() => { setAgingSearch(''); setAgingCurrency('ETB'); setAgingBranch('Addis Ababa Central'); }}
+                      className="w-full bg-slate-50 border hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition text-xs font-bold py-2 rounded-xl"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="bg-slate-50 border p-4 rounded-2xl flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase text-slate-400">Current (0-30 Days)</span>
+                    <span className="text-sm font-black text-emerald-700 font-mono mt-1">{agingCurrency} {sumCurrent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div className="bg-emerald-500 h-full" style={{ width: `${pctCurrent}%` }} />
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border p-4 rounded-2xl flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase text-slate-400">1 - 30 Days Past</span>
+                    <span className="text-sm font-black text-indigo-700 font-mono mt-1">{agingCurrency} {sum30.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div className="bg-indigo-500 h-full" style={{ width: `${pct30}%` }} />
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border p-4 rounded-2xl flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase text-slate-400">31 - 60 Days Past</span>
+                    <span className="text-sm font-black text-sky-700 font-mono mt-1">{agingCurrency} {sum60.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div className="bg-sky-500 h-full" style={{ width: `${pct60}%` }} />
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border p-4 rounded-2xl flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase text-slate-400">61 - 90 Days Past</span>
+                    <span className="text-sm font-black text-amber-700 font-mono mt-1">{agingCurrency} {sum90.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div className="bg-amber-500 h-full" style={{ width: `${pct90}%` }} />
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border p-4 rounded-2xl flex flex-col justify-between col-span-2 md:col-span-1">
+                    <span className="text-[9px] font-black uppercase text-rose-500">Over 90 Days Critical</span>
+                    <span className="text-sm font-black text-rose-700 font-mono mt-1">{agingCurrency} {sum120.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div className="bg-rose-500 h-full" style={{ width: `${pct120}%` }} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border rounded-3xl overflow-hidden shadow-xs">
+                  <div className="p-5 border-b flex justify-between items-center bg-slate-50/50">
+                    <div>
+                      <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider font-sans">IFRS Trade payables aging subledger (IAS 1/39)</h4>
+                      <p className="text-[10px] text-slate-500 font-sans mt-0.5">Summary ledger representing actual age distribution of outstanding balances owed to business vendors.</p>
+                    </div>
+                    <span className="text-[10.5px] font-mono bg-slate-100 font-semibold px-2.5 py-1 rounded text-slate-600 border border-slate-200">
+                      Total Active Segments: {updatedItems.length}
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full text-left font-sans table-auto">
+                      <thead>
+                        <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-650 border-b border-slate-200">
+                          <th className="px-4 py-3 text-center text-slate-400 border-r w-[40px]">#</th>
+                          <th className="px-4 py-3 border-r">Vendor Code</th>
+                          <th className="px-4 py-3 border-r">Supplier Name</th>
+                          <th className="px-4 py-3 border-r">TIN Number</th>
+                          <th className="px-4 py-3 text-right border-r">Total Outstanding</th>
+                          <th className="px-4 py-3 text-right border-r">Current (0-30d)</th>
+                          <th className="px-4 py-3 text-right border-r">1 - 30 Days</th>
+                          <th className="px-4 py-3 text-right border-r">31 - 60 Days</th>
+                          <th className="px-4 py-3 text-right border-r">61 - 90 Days</th>
+                          <th className="px-4 py-3 text-right border-r">Over 90 Days</th>
+                          <th className="px-4 py-3 text-center">Hold Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-150 text-[11px] text-slate-850 font-medium">
+                        {updatedItems.map((s, idx) => (
+                          <React.Fragment key={s.code}>
+                            <tr 
+                              className={`hover:bg-slate-50/70 transition cursor-pointer ${expandedRow === s.code ? 'bg-indigo-55/20 font-semibold' : ''}`}
+                              onClick={() => setExpandedRow(expandedRow === s.code ? null : s.code)}
+                            >
+                              <td className="px-4 py-2.5 text-center text-[10px] font-bold text-slate-400 border-r">{idx + 1}</td>
+                              <td className="px-4 py-2.5 border-r font-mono text-indigo-700 font-black flex items-center gap-1">
+                                <span className="p-0.5 hover:bg-slate-200 rounded transition text-indigo-500">
+                                  {expandedRow === s.code ? (
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                  )}
+                                </span>
+                                {s.code}
+                              </td>
+                              <td className="px-4 py-2.5 border-r truncate max-w-[140px]" title={s.name}>{s.name}</td>
+                              <td className="px-4 py-2.5 border-r font-mono">{s.tin}</td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono font-bold text-slate-900 bg-slate-50/40">
+                                {s.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-emerald-700">
+                                {s.current.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-indigo-700">
+                                {s.age30.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-sky-700">
+                                {s.age60.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-amber-700">
+                                {s.age90.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-rose-700 font-bold">
+                                {s.age120.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 text-center">
+                                {s.paymentHold === 'No Hold' ? (
+                                  <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wider">Cleared</span>
+                                ) : (
+                                  <span className="bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wider" title={s.paymentHoldReason}>Hold</span>
+                                )}
+                              </td>
+                            </tr>
+
+                            {expandedRow === s.code && (
+                              <tr className="bg-slate-50/40 border-b">
+                                <td colSpan={11} className="px-6 py-4">
+                                  <div className="bg-white border text-left border-indigo-200 rounded-2xl p-4 shadow-xs max-w-4xl">
+                                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                                      <span className="text-[10px] font-black uppercase text-indigo-800 tracking-wider flex items-center">
+                                        <ClipboardList className="w-3.5 h-3.5 mr-1 text-indigo-650 animate-pulse" />
+                                        Itemized Outstanding Invoices supporting subledger balance ({s.code})
+                                      </span>
+                                      <span className="text-[10px] font-sans text-slate-500">
+                                        Payment Term: <strong className="text-slate-800">{s.paymentTerm}</strong>
+                                      </span>
+                                    </div>
+                                    <div className="overflow-hidden border border-slate-150 rounded-xl">
+                                      <table className="w-full text-left text-[11px] font-sans">
+                                        <thead>
+                                          <tr className="bg-slate-100/75 border-b border-slate-150 text-[9px] font-black text-slate-500 uppercase">
+                                            <th className="px-3 py-2">Invoice No</th>
+                                            <th className="px-3 py-2 text-center">Invoice Date</th>
+                                            <th className="px-3 py-2 text-center">Due Date</th>
+                                            <th className="px-3 py-2 text-center">Term Grace</th>
+                                            <th className="px-3 py-2 text-center">Days Overdue</th>
+                                            <th className="px-3 py-2">Overdue Status</th>
+                                            <th className="px-3 py-2 text-right">Outstanding Amount ({agingCurrency})</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-150 text-slate-800 font-semibold">
+                                          {s.invoices && s.invoices.length > 0 ? (
+                                            s.invoices.map((inv: any) => {
+                                              const termDays = getPaymentTermDays(s.paymentTerm);
+                                              const isOverdue = inv.daysOverdue > 0;
+                                              return (
+                                                <tr key={inv.invoiceNo} className="hover:bg-slate-50/50">
+                                                  <td className="px-3 py-2 font-mono text-indigo-700 font-black">{inv.invoiceNo}</td>
+                                                  <td className="px-3 py-2 text-center text-slate-500">{formatDateString(inv.invoiceDate)}</td>
+                                                  <td className="px-3 py-2 text-center text-slate-700 font-bold">{formatDateString(inv.dueDate)}</td>
+                                                  <td className="px-3 py-2 text-center text-slate-500">{termDays} Days</td>
+                                                  <td className={`px-3 py-2 text-center font-mono ${isOverdue ? 'text-rose-600 font-black' : 'text-slate-400 font-medium'}`}>
+                                                    {isOverdue ? `${inv.daysOverdue} Days` : '0 Days'}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {isOverdue ? (
+                                                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                                        inv.daysOverdue <= 30 ? 'bg-indigo-50 text-indigo-700' :
+                                                        inv.daysOverdue <= 60 ? 'bg-sky-50 text-sky-700' :
+                                                        inv.daysOverdue <= 90 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
+                                                      }`}>
+                                                        Overdue {inv.daysOverdue}d
+                                                      </span>
+                                                    ) : (
+                                                      <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase">
+                                                        Within Term
+                                                      </span>
+                                                    )}
+                                                  </td>
+                                                  <td className="px-3 py-2 text-right font-mono font-black text-slate-900">
+                                                    {(inv.amount / rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })
+                                          ) : (
+                                            <tr>
+                                              <td colSpan={7} className="text-center text-xs text-slate-400 py-3">No outstanding invoices</td>
+                                            </tr>
+                                          )}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        ))}
+
+                        <tr className="bg-indigo-50/45 font-bold text-slate-950 text-xs border-t-2 border-slate-300">
+                          <td className="px-4 py-3 text-center border-r">Σ</td>
+                          <td className="px-4 py-3 border-r font-sans" colSpan={3}>Report Summary Totals ({agingCurrency})</td>
+                          <td className="px-4 py-3 border-r text-right font-mono font-black text-indigo-950 bg-indigo-50/90 outline outline-1 outline-indigo-250">
+                            {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 border-r text-right font-mono text-emerald-800">
+                            {sumCurrent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 border-r text-right font-mono text-indigo-850">
+                            {sum30.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 border-r text-right font-mono text-sky-850">
+                            {sum60.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 border-r text-right font-mono text-amber-850">
+                            {sum90.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 border-r text-right font-mono text-rose-800">
+                            {sum120.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 text-center text-[10px] uppercase text-slate-500 font-sans">-</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50/55 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900 leading-relaxed font-sans">
+                  <h5 className="font-bold uppercase tracking-wider text-[10.5px] text-amber-800 mb-1">🔍 Auditor Guidance Regarding Trade Accounts Payable</h5>
+                  <p>
+                    Under IFRS 9 Financial Instruments framework, payables are initially valued at fair price less transaction expenditures. Watch out for overdue periods surpassing 90 days as they prompt localized trade review protocols and risk regulatory audit adjustments. Ensure withholding tax amounts (2% for services, 3% for items) are accrued correctly in connection with applicable local supplier registries.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* AR AGING REPORT FOR INTEGRATED SUBLEDGER */}
+          {activeSheet === 'AR_Aging_Report' && (() => {
+            const rate = agingCurrency === 'USD' ? 120 : 1;
+            const cutoff = parseCutoffDate(agingDate);
+            const updatedItems = customers.map(c => {
+              const bal = c.balance;
+              const invoices = generateOutstandingInvoices(c.code, bal, c.paymentTerm, cutoff);
+              
+              let currentVal = 0;
+              let age30Val = 0;
+              let age60Val = 0;
+              let age90Val = 0;
+              let age120Val = 0;
+              
+              invoices.forEach(inv => {
+                const amt = inv.amount / rate;
+                if (inv.daysOverdue <= 0) {
+                  currentVal += amt;
+                } else if (inv.daysOverdue <= 30) {
+                  age30Val += amt;
+                } else if (inv.daysOverdue <= 60) {
+                  age60Val += amt;
+                } else if (inv.daysOverdue <= 90) {
+                  age90Val += amt;
+                } else {
+                  age120Val += amt;
+                }
+              });
+
+              const total = bal / rate;
+
+              return {
+                ...c,
+                total,
+                current: currentVal,
+                age30: age30Val,
+                age60: age60Val,
+                age90: age90Val,
+                age120: age120Val,
+                invoices
+              };
+            }).filter(c => {
+              const matchSearch = c.name.toLowerCase().includes(agingSearch.toLowerCase()) ||
+                                  c.code.toLowerCase().includes(agingSearch.toLowerCase()) ||
+                                  c.tin.includes(agingSearch);
+              return matchSearch;
+            });
+
+            const grandTotal = updatedItems.reduce((acc, val) => acc + val.total, 0);
+            const sumCurrent = updatedItems.reduce((acc, val) => acc + val.current, 0);
+            const sum30 = updatedItems.reduce((acc, val) => acc + val.age30, 0);
+            const sum60 = updatedItems.reduce((acc, val) => acc + val.age60, 0);
+            const sum90 = updatedItems.reduce((acc, val) => acc + val.age90, 0);
+            const sum120 = updatedItems.reduce((acc, val) => acc + val.age120, 0);
+
+            const pctCurrent = grandTotal > 0 ? (sumCurrent / grandTotal) * 100 : 0;
+            const pct30 = grandTotal > 0 ? (sum30 / grandTotal) * 100 : 0;
+            const pct60 = grandTotal > 0 ? (sum60 / grandTotal) * 100 : 0;
+            const pct90 = grandTotal > 0 ? (sum90 / grandTotal) * 100 : 0;
+            const pct120 = grandTotal > 0 ? (sum120 / grandTotal) * 100 : 0;
+
+            const handleExportCSV = () => {
+              let csvContent = "data:text/csv;charset=utf-8,";
+              csvContent += "Customer Code,Customer Name,TIN Number,Branch,Currency,Credit Risk,Credit Limit,Total AR Outstanding,Current,1-30 Days,31-60 Days,61-90 Days,Over 90 Days,Credit Hold Status\r\n";
+              
+              updatedItems.forEach(c => {
+                csvContent += `"${c.code}","${c.name}","${c.tin}","${agingBranch}","${agingCurrency}","${c.creditRisk}",${(c.creditLimit / rate).toFixed(2)},${c.total.toFixed(2)},${c.current.toFixed(2)},${c.age30.toFixed(2)},${c.age60.toFixed(2)},${c.age90.toFixed(2)},${c.age120.toFixed(2)},"${c.creditHold}"\r\n`;
+              });
+
+              csvContent += `"-TOTAL-","-","-","-","${agingCurrency}","-","-",${grandTotal.toFixed(2)},${sumCurrent.toFixed(2)},${sum30.toFixed(2)},${sum60.toFixed(2)},${sum90.toFixed(2)},${sum120.toFixed(2)},"-"\r\n`;
+
+              const encodedUri = encodeURI(csvContent);
+              const link = document.createElement("a");
+              link.setAttribute("href", encodedUri);
+              link.setAttribute("download", `AR_Aging_Report_${agingDate.replace(/ /g, '_')}.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              triggerToast("Success: AR Aging Report exported to CSV registry format successfully.");
+            };
+
+            const handlePrint = () => {
+              window.print();
+            };
+
+            return (
+              <div className="space-y-6">
+                <ReportHeaderCard
+                  defaultReportName="AR Aging Report"
+                  defaultPeriod={`As of ${agingDate}`}
+                  defaultBranch={agingBranch}
+                  currency={agingCurrency}
+                  onCurrencyChange={(c) => setAgingCurrency(c)}
+                  onPrint={handlePrint}
+                  onExportExcel={handleExportCSV}
+                />
+
+                <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs grid grid-cols-1 md:grid-cols-4 gap-4 print:hidden">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Search Customer / TIN</label>
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 animate-pulse" />
+                      <input
+                        type="text"
+                        value={agingSearch}
+                        onChange={(e) => setAgingSearch(e.target.value)}
+                        placeholder="Filter by code, TIN, name..."
+                        className="w-full pl-9 pr-3 py-2 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500 font-sans"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Aging Baseline Cutoff</label>
+                    <select
+                      value={agingDate}
+                      onChange={(e) => setAgingDate(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500 bg-white font-sans text-slate-800"
+                    >
+                      <option value="31 December 2026">31 December 2026 (YTD End)</option>
+                      <option value="30 September 2026">30 September 2026 (Q3 End)</option>
+                      <option value="30 June 2026">30 June 2026 (Q2 End)</option>
+                      <option value="31 March 2026">31 March 2026 (Q1 End)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 mb-1">Audit Operating Branch</label>
+                    <select
+                      value={agingBranch}
+                      onChange={(e) => setAgingBranch(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-xl text-xs outline-none focus:ring-1 focus:ring-blue-500 bg-white font-sans text-slate-800"
+                    >
+                      <option value="All Operating Branches">All Operating Branches</option>
+                      <option value="Addis Ababa Central">Addis Ababa Central Branch</option>
+                      <option value="Hawassa Hub">Hawassa Hub Branch</option>
+                      <option value="Gondar West">Gondar West Branch</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <button
+                      type="button"
+                      onClick={() => { setAgingSearch(''); setAgingCurrency('ETB'); setAgingBranch('Addis Ababa Central'); }}
+                      className="w-full bg-slate-50 border hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition text-xs font-bold py-2 rounded-xl"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="bg-slate-50 border p-4 rounded-2xl flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase text-slate-400">Current (0-30 Days)</span>
+                    <span className="text-sm font-black text-emerald-700 font-mono mt-1">{agingCurrency} {sumCurrent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div className="bg-emerald-500 h-full" style={{ width: `${pctCurrent}%` }} />
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border p-4 rounded-2xl flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase text-slate-400">1 - 30 Days Past</span>
+                    <span className="text-sm font-black text-indigo-700 font-mono mt-1">{agingCurrency} {sum30.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div className="bg-indigo-500 h-full" style={{ width: `${pct30}%` }} />
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border p-4 rounded-2xl flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase text-slate-400">31 - 60 Days Past</span>
+                    <span className="text-sm font-black text-sky-700 font-mono mt-1">{agingCurrency} {sum60.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div className="bg-sky-500 h-full" style={{ width: `${pct60}%` }} />
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border p-4 rounded-2xl flex flex-col justify-between">
+                    <span className="text-[9px] font-black uppercase text-slate-400">61 - 90 Days Past</span>
+                    <span className="text-sm font-black text-amber-700 font-mono mt-1">{agingCurrency} {sum90.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div className="bg-amber-500 h-full" style={{ width: `${pct90}%` }} />
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border p-4 rounded-2xl flex flex-col justify-between col-span-2 md:col-span-1">
+                    <span className="text-[9px] font-black uppercase text-rose-500">Over 90 Days Critical</span>
+                    <span className="text-sm font-black text-rose-700 font-mono mt-1">{agingCurrency} {sum120.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
+                      <div className="bg-rose-500 h-full" style={{ width: `${pct120}%` }} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white border rounded-3xl overflow-hidden shadow-xs">
+                  <div className="p-5 border-b flex justify-between items-center bg-slate-50/50">
+                    <div>
+                      <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider font-sans">IFRS Trade receivables aging subledger (IAS 1/32)</h4>
+                      <p className="text-[10px] text-slate-500 font-sans mt-0.5">Summary ledger representing actual age distribution of outstanding balances claimed from business customers.</p>
+                    </div>
+                    <span className="text-[10.5px] font-mono bg-slate-100 font-semibold px-2.5 py-1 rounded text-slate-600 border border-slate-200">
+                      Total Active Segments: {updatedItems.length}
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full text-left font-sans table-auto">
+                      <thead>
+                        <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-650 border-b border-slate-200">
+                          <th className="px-4 py-3 text-center text-slate-400 border-r w-[40px]">#</th>
+                          <th className="px-4 py-3 border-r">Customer Code</th>
+                          <th className="px-4 py-3 border-r">Customer Name</th>
+                          <th className="px-4 py-3 border-r">TIN Number</th>
+                          <th className="px-4 py-3 border-r">Risk Level</th>
+                          <th className="px-4 py-3 text-right border-r">Credit Limit</th>
+                          <th className="px-4 py-3 text-right border-r">Total Balance</th>
+                          <th className="px-4 py-3 text-right border-r">Current (0-30d)</th>
+                          <th className="px-4 py-3 text-right border-r">1 - 30 Days</th>
+                          <th className="px-4 py-3 text-right border-r">31 - 60 Days</th>
+                          <th className="px-4 py-3 text-right border-r">61 - 90 Days</th>
+                          <th className="px-4 py-3 text-right border-r">Over 90 Days</th>
+                          <th className="px-4 py-3 text-center">Credit Hold</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-150 text-[11px] text-slate-850 font-medium">
+                        {updatedItems.map((c, idx) => (
+                          <React.Fragment key={c.code}>
+                            <tr 
+                              className={`hover:bg-slate-50/70 transition cursor-pointer ${expandedRow === c.code ? 'bg-indigo-55/20 font-semibold' : ''}`}
+                              onClick={() => setExpandedRow(expandedRow === c.code ? null : c.code)}
+                            >
+                              <td className="px-4 py-2.5 text-center text-[10px] font-bold text-slate-400 border-r">{idx + 1}</td>
+                              <td className="px-4 py-2.5 border-r font-mono text-blue-700 font-black flex items-center gap-1">
+                                <span className="p-0.5 hover:bg-slate-200 rounded transition text-blue-500">
+                                  {expandedRow === c.code ? (
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  ) : (
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                  )}
+                                </span>
+                                {c.code}
+                              </td>
+                              <td className="px-4 py-2.5 border-r truncate max-w-[130px]" title={c.name}>{c.name}</td>
+                              <td className="px-4 py-2.5 border-r font-mono">{c.tin}</td>
+                              <td className="px-4 py-2.5 border-r">
+                                <span className={`px-2 py-0.5 font-bold rounded-full text-[9px] ${
+                                  c.creditRisk === 'Low' ? 'bg-emerald-50 text-emerald-700' :
+                                  c.creditRisk === 'Medium' ? 'bg-blue-50 text-blue-700' :
+                                  c.creditRisk === 'High' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
+                                }`}>
+                                  {c.creditRisk}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-slate-500">
+                                {(c.creditLimit / rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono font-bold text-slate-900 bg-slate-50/40">
+                                {c.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-emerald-700">
+                                {c.current.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-indigo-700">
+                                {c.age30.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-sky-700">
+                                {c.age60.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-amber-700">
+                                {c.age90.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 border-r text-right font-mono text-rose-700 font-bold">
+                                {c.age120.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </td>
+                              <td className="px-4 py-2.5 text-center">
+                                {c.creditHold === 'No Hold' ? (
+                                  <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wider">Cleared</span>
+                                ) : (
+                                  <span className="bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase tracking-wider" title={c.creditHoldReason}>Hold</span>
+                                )}
+                              </td>
+                            </tr>
+
+                            {expandedRow === c.code && (
+                              <tr className="bg-slate-50/40 border-b">
+                                <td colSpan={13} className="px-6 py-4">
+                                  <div className="bg-white border text-left border-blue-200 rounded-2xl p-4 shadow-xs max-w-4xl">
+                                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                                      <span className="text-[10px] font-black uppercase text-blue-800 tracking-wider flex items-center">
+                                        <ClipboardList className="w-3.5 h-3.5 mr-1 text-blue-600 animate-pulse" />
+                                        Itemized Outstanding Invoices supporting subledger balance ({c.code})
+                                      </span>
+                                      <span className="text-[10px] font-sans text-slate-500">
+                                        Payment Term: <strong className="text-slate-800">{c.paymentTerm}</strong>
+                                      </span>
+                                    </div>
+                                    <div className="overflow-hidden border border-slate-150 rounded-xl">
+                                      <table className="w-full text-left text-[11px] font-sans">
+                                        <thead>
+                                          <tr className="bg-slate-100/75 border-b border-slate-150 text-[9px] font-black text-slate-500 uppercase">
+                                            <th className="px-3 py-2">Invoice No</th>
+                                            <th className="px-3 py-2 text-center">Invoice Date</th>
+                                            <th className="px-3 py-2 text-center">Due Date</th>
+                                            <th className="px-3 py-2 text-center">Term Grace</th>
+                                            <th className="px-3 py-2 text-center">Days Overdue</th>
+                                            <th className="px-3 py-2">Overdue Status</th>
+                                            <th className="px-3 py-2 text-right">Outstanding Amount ({agingCurrency})</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-150 text-slate-800 font-semibold">
+                                          {c.invoices && c.invoices.length > 0 ? (
+                                            c.invoices.map((inv: any) => {
+                                              const termDays = getPaymentTermDays(c.paymentTerm);
+                                              const isOverdue = inv.daysOverdue > 0;
+                                              return (
+                                                <tr key={inv.invoiceNo} className="hover:bg-slate-50/50">
+                                                  <td className="px-3 py-2 font-mono text-blue-700 font-black">{inv.invoiceNo}</td>
+                                                  <td className="px-3 py-2 text-center text-slate-500">{formatDateString(inv.invoiceDate)}</td>
+                                                  <td className="px-3 py-2 text-center text-slate-700 font-bold">{formatDateString(inv.dueDate)}</td>
+                                                  <td className="px-3 py-2 text-center text-slate-500">{termDays} Days</td>
+                                                  <td className={`px-3 py-2 text-center font-mono ${isOverdue ? 'text-rose-600 font-black' : 'text-slate-400 font-medium'}`}>
+                                                    {isOverdue ? `${inv.daysOverdue} Days` : '0 Days'}
+                                                  </td>
+                                                  <td className="px-3 py-2">
+                                                    {isOverdue ? (
+                                                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                                        inv.daysOverdue <= 30 ? 'bg-indigo-50 text-indigo-700' :
+                                                        inv.daysOverdue <= 60 ? 'bg-sky-50 text-sky-700' :
+                                                        inv.daysOverdue <= 90 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
+                                                      }`}>
+                                                        Overdue {inv.daysOverdue}d
+                                                      </span>
+                                                    ) : (
+                                                      <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase">
+                                                        Within Term
+                                                      </span>
+                                                    )}
+                                                  </td>
+                                                  <td className="px-3 py-2 text-right font-mono font-black text-slate-900">
+                                                    {(inv.amount / rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })
+                                          ) : (
+                                            <tr>
+                                              <td colSpan={7} className="text-center text-xs text-slate-400 py-3">No outstanding invoices</td>
+                                            </tr>
+                                          )}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        ))}
+
+                        <tr className="bg-blue-50/45 font-bold text-slate-950 text-xs border-t-2 border-slate-300">
+                          <td className="px-4 py-3 text-center border-r">Σ</td>
+                          <td className="px-4 py-3 border-r font-sans" colSpan={5}>Report Summary Totals ({agingCurrency})</td>
+                          <td className="px-4 py-3 border-r text-right font-mono font-black text-blue-950 bg-blue-50/90 outline outline-1 outline-blue-250">
+                            {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 border-r text-right font-mono text-emerald-800">
+                            {sumCurrent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 border-r text-right font-mono text-indigo-850">
+                            {sum30.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 border-r text-right font-mono text-sky-850">
+                            {sum60.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 border-r text-right font-mono text-amber-850">
+                            {sum90.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 border-r text-right font-mono text-rose-800">
+                            {sum120.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3 text-center text-[10px] uppercase text-slate-500 font-sans">-</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50/55 border border-blue-200 rounded-2xl p-4 text-xs text-blue-900 leading-relaxed font-sans">
+                  <h5 className="font-bold uppercase tracking-wider text-[10.5px] text-blue-800 mb-1">🔍 Credit Controlling Guideline Regarding Accounts Receivable</h5>
+                  <p>
+                    According to IFRS 9 impairment guidelines, companies must calculate Expected Credit Losses (ECL) on aging receivables. If a customer displays a "High" credit risk designation coupled with past-due aging values over 60 days, credit limits must immediately undergo locking scrutiny, preventing additional billing releases. Track TIN registration carefully for statutory reporting.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
 
           {activeSheet === 'AP_AR_Module_Dashboard' && (
             <div className="space-y-6">
@@ -682,8 +1565,8 @@ export default function APARSubmoduleTab({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-slate-500 font-bold mb-1">Company Entity</label>
-                    <select className="w-full border p-2 rounded-xl" value={supplierForm.company || 'QM-ABC'} onChange={e => setSupplierForm({ ...supplierForm, company: e.target.value })}>
-                      <option value="QM-ABC">QM-ABC Head Office</option>
+                    <select className="w-full border p-2 rounded-xl" value={supplierForm.company || 'MS-PLC'} onChange={e => setSupplierForm({ ...supplierForm, company: e.target.value })}>
+                      <option value="MS-PLC">Mesfin PLC Head Office</option>
                     </select>
                   </div>
                   <div>
@@ -747,8 +1630,8 @@ export default function APARSubmoduleTab({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-slate-500 font-bold mb-1">Company Site</label>
-                    <select className="w-full border p-2 rounded-xl" value={customerForm.company || 'QM-ABC'} onChange={e => setCustomerForm({ ...customerForm, company: e.target.value })}>
-                      <option value="QM-ABC">QM-ABC Primary Legal Node</option>
+                    <select className="w-full border p-2 rounded-xl" value={customerForm.company || 'MS-PLC'} onChange={e => setCustomerForm({ ...customerForm, company: e.target.value })}>
+                      <option value="MS-PLC">Mesfin PLC Primary Legal Node</option>
                     </select>
                   </div>
                   <div>
@@ -979,8 +1862,8 @@ export default function APARSubmoduleTab({
               'Formatted headers and copy-paste schemas to bulk import supplier lists',
               ['Company Code', 'Branch Code', 'Supplier Code', 'Supplier Name', 'TIN Number', 'VAT Status', 'Default Currency', 'Payable Account', 'Active Status'],
               [
-                ['QM-ABC', 'AA-01', 'SUPP-001', 'Nile Petroleum PLC', '0012457890', 'VAT Registered', 'ETB', '2110 (Trade Payables)', 'Active'],
-                ['QM-ABC', 'AA-01', 'SUPP-002', 'EEP Utilities', '0003445582', 'VAT Registered', 'ETB', '2110 (Trade Payables)', 'Active']
+                ['MS-PLC', 'AA-01', 'SUPP-001', 'Nile Petroleum PLC', '0012457890', 'VAT Registered', 'ETB', '2110 (Trade Payables)', 'Active'],
+                ['MS-PLC', 'AA-01', 'SUPP-002', 'EEP Utilities', '0003445582', 'VAT Registered', 'ETB', '2110 (Trade Payables)', 'Active']
               ]
             )}
 
@@ -989,8 +1872,8 @@ export default function APARSubmoduleTab({
               'Formatted headers and copy-paste schemas to bulk import customer accounts',
               ['Company Code', 'Branch Code', 'Customer Code', 'Customer Name', 'TIN Number', 'Receivable Account', 'Credit Limit', 'Active Status'],
               [
-                ['QM-ABC', 'AA-01', 'CUST-001', 'Qelem Education PLC', '0041234567', '1120 (Trade Receivables)', '2500000', 'Active'],
-                ['QM-ABC', 'AA-01', 'CUST-002', 'Midroc Investment Group', '0000105432', '1120 (Trade Receivables)', '12000000', 'Active']
+                ['MS-PLC', 'AA-01', 'CUST-001', 'Alpha Education PLC', '0041234567', '1120 (Trade Receivables)', '2500000', 'Active'],
+                ['MS-PLC', 'AA-01', 'CUST-002', 'Midroc Investment Group', '0000105432', '1120 (Trade Receivables)', '12000000', 'Active']
               ]
             )}
 

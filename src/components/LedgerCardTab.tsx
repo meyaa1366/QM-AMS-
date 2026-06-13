@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Account } from '../types';
+import ReportHeaderCard from './ReportHeaderCard';
 import { Printer, Download, Eye, FileSpreadsheet, Building2, Calendar, FileText, Search, CreditCard, Layers } from 'lucide-react';
 
 interface LedgerCardTabProps {
@@ -188,6 +189,15 @@ export default function LedgerCardTab({ accounts }: LedgerCardTabProps) {
 
   return (
     <div className="space-y-6 font-sans antialiased">
+      {/* PROFESSIONAL IFRS-STANDARD REPORT REVOLUTIONARY CARD */}
+      <ReportHeaderCard
+        defaultReportName="Notes to the Financial Statements"
+        defaultPeriod={`For fiscal year ${fiscalYear || '2026'}`}
+        defaultBranch="Addis Ababa Central"
+        onPrint={handlePrint}
+        onExportExcel={handleCSVExport}
+      />
+
       {/* Parameters Header Card */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs select-none">
         <div className="flex flex-col lg:flex-row gap-5 items-stretch lg:items-center justify-between">
@@ -478,7 +488,7 @@ export default function LedgerCardTab({ accounts }: LedgerCardTabProps) {
             </div>
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-center">
               <span>Internal Ref Lock:</span>
-              <span className="block mt-1 text-blue-600 font-mono">QM-AMS-GOV-REC2026</span>
+              <span className="block mt-1 text-blue-600 font-mono">MS-AMS-GOV-REC2026</span>
             </div>
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-center">
               <span>Ledger Security Status:</span>

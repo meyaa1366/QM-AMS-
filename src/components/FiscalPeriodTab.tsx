@@ -64,9 +64,9 @@ export default function FiscalPeriodTab({ onAddAuditLog }: FiscalPeriodTabProps)
 
   // Seed Data: Fiscal Years
   const [fiscalYears, setFiscalYears] = useState([
-    { code: 'FY2025', name: 'Fiscal Year 2025', company: 'QM-ABC', startDate: '2025-01-01', endDate: '2025-12-31', basis: 'IFRS', calendarType: 'Gregorian', periodsCount: 15, status: 'Closed' },
-    { code: 'FY2026', name: 'Fiscal Year 2026', company: 'QM-ABC', startDate: '2026-01-01', endDate: '2026-12-31', basis: 'IFRS', calendarType: 'Gregorian', periodsCount: 15, status: 'Active' },
-    { code: 'FY2027', name: 'Fiscal Year 2027 (Planning)', company: 'QM-ABC', startDate: '2027-01-01', endDate: '2027-12-31', basis: 'IFRS', calendarType: 'Gregorian', periodsCount: 0, status: 'Planning' }
+    { code: 'FY2025', name: 'Fiscal Year 2025', company: 'MS-PLC', startDate: '2025-01-01', endDate: '2025-12-31', basis: 'IFRS', calendarType: 'Gregorian', periodsCount: 15, status: 'Closed' },
+    { code: 'FY2026', name: 'Fiscal Year 2026', company: 'MS-PLC', startDate: '2026-01-01', endDate: '2026-12-31', basis: 'IFRS', calendarType: 'Gregorian', periodsCount: 15, status: 'Active' },
+    { code: 'FY2027', name: 'Fiscal Year 2027 (Planning)', company: 'MS-PLC', startDate: '2027-01-01', endDate: '2027-12-31', basis: 'IFRS', calendarType: 'Gregorian', periodsCount: 0, status: 'Planning' }
   ]);
 
   // Seed Data: Accounting Periods
@@ -100,14 +100,14 @@ export default function FiscalPeriodTab({ onAddAuditLog }: FiscalPeriodTabProps)
 
   // Reopen Request History
   const [reopenRequests, setReopenRequests] = useState([
-    { id: 'REOP-2026-001', periodCode: 'FY2026-P03', requester: 'finance.lead@qmt.com', date: '2026-06-10', reason: 'Audit Correction - Amortization correction requested by external auditor', durationDays: 3, status: 'Approved', approvedBy: 'FIN_MANAGER' },
-    { id: 'REOP-2026-002', periodCode: 'FY2026-P02', requester: 'finance.lead@qmt.com', date: '2026-06-08', reason: 'Supplier Invoice reversal requested due to GRN mismatch', durationDays: 2, status: 'Completed', approvedBy: 'FIN_MANAGER' }
+    { id: 'REOP-2026-001', periodCode: 'FY2026-P03', requester: 'finance.lead@mesfinplc.com', date: '2026-06-10', reason: 'Audit Correction - Amortization correction requested by external auditor', durationDays: 3, status: 'Approved', approvedBy: 'FIN_MANAGER' },
+    { id: 'REOP-2026-002', periodCode: 'FY2026-P02', requester: 'finance.lead@mesfinplc.com', date: '2026-06-08', reason: 'Supplier Invoice reversal requested due to GRN mismatch', durationDays: 2, status: 'Completed', approvedBy: 'FIN_MANAGER' }
   ]);
 
   // Form states for creating a new Fiscal Year
   const [newFyCode, setNewFyCode] = useState('FY2027');
   const [newFyName, setNewFyName] = useState('Fiscal Year 2027');
-  const [newFyCompany, setNewFyCompany] = useState('QM-ABC');
+  const [newFyCompany, setNewFyCompany] = useState('MS-PLC');
   const [newFyStart, setNewFyStart] = useState('2027-01-01');
   const [newFyEnd, setNewFyEnd] = useState('2027-12-31');
   const [newFyBasis, setNewFyBasis] = useState('IFRS');
@@ -238,7 +238,7 @@ export default function FiscalPeriodTab({ onAddAuditLog }: FiscalPeriodTabProps)
     const nItem = {
       id: `REOP-2026-${Math.floor(Math.random() * 900) + 100}`,
       periodCode: reqPeriodCode,
-      requester: 'finance.lead@qmt.com',
+      requester: 'finance.lead@mesfinplc.com',
       date: new Date().toISOString().split('T')[0],
       reason: reqReason,
       durationDays: parseInt(reqLength) || 3,

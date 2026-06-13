@@ -32,7 +32,13 @@ import {
   ChevronsRight,
   Boxes,
   BriefcaseIcon,
-  Users
+  Users,
+  Clock,
+  Landmark,
+  ArrowRightLeft,
+  Receipt,
+  ClipboardList,
+  Sparkles
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -104,9 +110,26 @@ export default function Sidebar({
       label: 'Transactions',
       icon: SlidersHorizontal,
       items: [
+        { id: 'voucher-framework', label: 'AMS Voucher Workdesk', icon: FileText, badge: 'SAP Spec' },
         { id: 'journal-register', label: 'Journal Transaction Book', icon: BookOpen },
         { id: 'budget-setup', label: 'Budget Setup & Controls', icon: Coins, badge: 'Active' },
         { id: 'posting-matrix', label: 'Voucher posting Matrix', icon: Scale }
+      ]
+    },
+    {
+      id: 'cash-bank-module',
+      label: 'Cash & Bank Management',
+      icon: Landmark,
+      items: [
+        { id: 'cash-bank-dashboard', label: 'Treasury Dashboard', icon: Activity },
+        { id: 'cash-bank-masters', label: 'Bank & Cash Masters', icon: Landmark },
+        { id: 'cash-bank-transactions', label: 'Transaction Register', icon: Coins },
+        { id: 'cash-bank-petty', label: 'Imprest Petty Cash', icon: Receipt },
+        { id: 'cash-bank-transfers', label: 'Intercompany Transfers', icon: ArrowRightLeft },
+        { id: 'cash-bank-cheques', label: 'PDC & Cheque Center', icon: ClipboardList },
+        { id: 'cash-bank-reco', label: 'Live Bank Reconciliations', icon: ShieldCheck },
+        { id: 'cash-bank-security', label: 'Access Control & Rules', icon: Lock },
+        { id: 'cash-bank-comparison', label: 'Competitor ERP Matrix', icon: Sparkles }
       ]
     },
     {
@@ -131,6 +154,7 @@ export default function Sidebar({
         { id: 'apar-overview', label: 'AP / AR Dashboard', icon: FileText },
         { id: 'apar-suppliers', label: 'Supplier Registry', icon: Users },
         { id: 'apar-customers', label: 'Customer Registry', icon: Users },
+        { id: 'apar-aging', label: 'AP & AR Aging Report', icon: Clock },
         { id: 'apar-gating', label: 'Live Compliance Gating', icon: ShieldCheck },
         { id: 'apar-controls', label: 'AP / AR Setup Controls', icon: Settings },
         { id: 'apar-compliance', label: 'ERCA Tax Compliance', icon: Percent }
@@ -168,6 +192,7 @@ export default function Sidebar({
     'finance-setup': true,
     'master-data': true,
     'transactions': true,
+    'cash-bank-module': true,
     'apar-subledger': true
   });
 

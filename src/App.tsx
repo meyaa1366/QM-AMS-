@@ -10,10 +10,12 @@ import VoucherRegistryView from './components/VoucherRegistryView';
 import FinancialStatementsTab from './components/FinancialStatementsTab';
 import LedgerCardTab from './components/LedgerCardTab';
 import JournalRegisterTab from './components/JournalRegisterTab';
+import VoucherFrameworkTab from './components/VoucherFrameworkTab';
 import FiscalPeriodTab from './components/FiscalPeriodTab';
 import DevImplementationGuideTab from './components/DevImplementationGuideTab';
 import BudgetModuleTab from './components/BudgetModuleTab';
 import APARSubmoduleTab from './components/APARSubmoduleTab';
+import CashBankModuleTab from './components/CashBankModuleTab';
 import { 
   IFRSClassificationTab, 
   EthiopianTaxTab, 
@@ -522,6 +524,26 @@ export default function App() {
             <JournalRegisterTab accounts={accounts} auditLogs={auditLogs} />
           )}
 
+          {/* TAB: AMS Voucher Workdesk (SAP/NetSuite Grade Framework) */}
+          {activeTab === 'voucher-framework' && (
+            <VoucherFrameworkTab 
+              accounts={accounts} 
+              onAddAuditLog={(log) => {
+                const mapped = {
+                  id: log.id,
+                  timestamp: log.timestamp,
+                  user: log.user,
+                  action: log.action,
+                  entityType: log.entityType,
+                  entityKey: log.entityKey,
+                  description: log.description
+                };
+                setAuditLogs(prev => [mapped as any, ...prev]);
+                triggerToast(`Voucher action: ${log.description}`, 'success');
+              }}
+            />
+          )}
+
           {/* TAB: Fiscal Year & Period Setup */}
           {activeTab === 'fiscal-period' && (
             <FiscalPeriodTab 
@@ -583,6 +605,7 @@ export default function App() {
           {activeTab === 'apar-overview' && <APARSubmoduleTab initialCategory="Overview" initialSheet="AP_AR_Module_Dashboard" />}
           {activeTab === 'apar-suppliers' && <APARSubmoduleTab initialCategory="Suppliers" initialSheet="Supplier_Register_Page" />}
           {activeTab === 'apar-customers' && <APARSubmoduleTab initialCategory="Customers" initialSheet="Customer_Register_Page" />}
+          {activeTab === 'apar-aging' && <APARSubmoduleTab initialCategory="Aging" initialSheet="AP_Aging_Report" />}
           {activeTab === 'apar-gating' && <APARSubmoduleTab initialCategory="Gating" initialSheet="Supplier_Transaction_Gating" />}
           {activeTab === 'apar-controls' && <APARSubmoduleTab initialCategory="Control" initialSheet="AP_Setup_Control" />}
           {activeTab === 'apar-compliance' && <APARSubmoduleTab initialCategory="Compliance" initialSheet="Tax_Compliance_Mapping" />}
@@ -638,6 +661,22 @@ export default function App() {
                 triggerToast(`Budget log: ${log.description}`, 'success');
               }}
             />
+          )}
+
+          {/* TAB 16: Corporate Cash & Bank Management Master */}
+          {activeTab.startsWith('cash-bank') && (
+            <CashBankModuleTab initialSubTab={
+              activeTab === 'cash-bank-dashboard' ? 'dashboard' :
+              activeTab === 'cash-bank-masters' ? 'accounts' :
+              activeTab === 'cash-bank-transactions' ? 'transactions' :
+              activeTab === 'cash-bank-petty' ? 'petty-cash' :
+              activeTab === 'cash-bank-transfers' ? 'transfers' :
+              activeTab === 'cash-bank-cheques' ? 'cheques-pdc' :
+              activeTab === 'cash-bank-reco' ? 'reconstruction' :
+              activeTab === 'cash-bank-security' ? 'security' :
+              activeTab === 'cash-bank-comparison' ? 'comparison' :
+              'dashboard'
+            } />
           )}
 
         </div>

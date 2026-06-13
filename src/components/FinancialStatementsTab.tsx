@@ -11,6 +11,7 @@ import {
   ChevronRight, ArrowDownRight, Layers, Coins, Undo2
 } from 'lucide-react';
 import { Account, AccountType } from '../types';
+import ReportHeaderCard from './ReportHeaderCard';
 
 interface FinancialStatementsTabProps {
   accounts: Account[];
@@ -370,87 +371,7 @@ export default function FinancialStatementsTab({
   return (
     <div id="financial-statements-viewport" className="space-y-6 select-none animate-fadeIn font-sans p-2 print:p-0 print:space-y-4 print:bg-white print:text-black">
       
-      {/* PROFESSIONAL AUDIT-READY PRINT REPORT HEADER - ONLY VISIBLE DURING PRINT/REVIEW */}
-      <div className="hidden print:block bg-white text-slate-900 p-6 border-b-2 border-slate-900 mb-6 font-sans">
-        <div className="flex justify-between items-start border-b pb-4 mb-4">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight uppercase text-slate-1000 select-all">
-              {selectedCompany === 'All' ? 'Consolidated Legal Entities' : selectedCompany}
-            </h1>
-            <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">
-              {selectedBranch === 'All' ? 'Consolidated Operations - All Operating Branches' : `${selectedBranch} Branch`}
-            </p>
-            <p className="text-[10px] text-slate-400 font-mono mt-1 uppercase">
-              REGULATORY COMPLIANCE STATUS: ETHIOPIAN ERCA COMPLIANT &amp; IFRS CERTIFIED (IAS 1 Framework)
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="border border-slate-900 px-3 py-1 bg-slate-50 rounded text-center inline-block">
-              <span className="text-[9px] font-extrabold uppercase block tracking-wider text-slate-600">IFRS COMPLIANT</span>
-              <span className="text-xs font-black text-indigo-950 font-mono">IAS 1 STANDARD</span>
-            </div>
-            <p className="text-[10px] text-slate-500 font-mono mt-1.5 font-bold">
-              PRINT REVIEW DATE: {new Date().toISOString().slice(0, 10)} {new Date().toLocaleTimeString('en-US', { hour12: false })} UTC
-            </p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-3 gap-6 text-xs mb-4">
-          <div>
-            <span className="block font-bold text-slate-400 uppercase text-[9px] tracking-wider mb-0.5">Financial Statement Report</span>
-            <span className="font-extrabold text-slate-900 text-sm">
-              {currentView === 'BS' && "Statement of Financial Position (Balance Sheet)"}
-              {currentView === 'PL' && "Statement of Profit or Loss (Income Statement)"}
-              {currentView === 'CF' && "Statement of Cash Flows (IAS 7)"}
-              {currentView === 'EQ' && "Statement of Changes in Equity"}
-              {currentView === 'TB' && "Verified Trial Balance Ledger Working Table"}
-            </span>
-          </div>
-          <div>
-            <span className="block font-bold text-slate-400 uppercase text-[9px] tracking-wider mb-0.5">Reporting Period Target</span>
-            <span className="font-extrabold text-slate-900 text-sm">
-              {selectedPeriod === 'FY_2026' ? 'FY2026 Gregorian (Active Plan)' : selectedPeriod === 'Q2_2026' ? 'Q2 2026 ending June 30' : 'Q1 2026 ending March 31'}
-            </span>
-          </div>
-          <div>
-            <span className="block font-bold text-slate-400 uppercase text-[9px] tracking-wider mb-0.5">Reporting Currency &amp; Compliance</span>
-            <span className="font-extrabold text-slate-900 text-sm uppercase">
-              {currency === 'ETB' ? 'Ethiopian Birr (ETB)' : 'US Dollar (USD) proxy'} • AUDITED &amp; SEALED
-            </span>
-          </div>
-        </div>
-
-        <div className="border-t border-slate-200 pt-3 flex justify-between items-center text-[10px] text-slate-500">
-          <div>
-            <span>SYSTEM AUDIT HASH: <strong className="font-mono text-slate-800 uppercase">QM-AMS-AUD-{selectedPeriod}-{currentView}-SECURE-VERIFIED</strong></span>
-          </div>
-          <div className="flex gap-4">
-            <span>Prepared: <strong className="text-slate-800">Finance Controller Office</strong></span>
-            <span>Reviewed: <strong className="text-slate-800">Lead IFRS Auditor (Signee)</strong></span>
-          </div>
-        </div>
-
-        {/* Verification Sign-off & Stamp block for printed copy */}
-        <div className="mt-6 border-t border-dashed border-slate-350 pt-4 grid grid-cols-2 gap-8">
-          <div className="border border-slate-350 rounded-lg p-4 bg-slate-50/50">
-            <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-wider mb-4">Board Audit Committee Sign-Off</h4>
-            <div className="h-8 border-b border-slate-400 border-dashed mb-2"></div>
-            <div className="flex justify-between text-[9px] text-slate-500 font-medium font-sans">
-              <span>Authorized Signature Verification</span>
-              <span>Date of Board Settlement</span>
-            </div>
-          </div>
-          <div className="border border-slate-350 rounded-lg p-4 bg-slate-50/50 flex flex-col justify-between">
-            <div>
-              <h4 className="text-[10px] font-black text-slate-600 uppercase tracking-wider mb-1">Corporate Seal / Stamp</h4>
-              <p className="text-[9px] text-slate-500">Apply regulatory seal post-signature validation</p>
-            </div>
-            <div className="text-right text-[9px] font-mono font-bold text-slate-400 tracking-widest mt-3">
-              [ PLACE SEAL HERE ]
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Dynamic Header Badge section */}
       <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
@@ -613,39 +534,21 @@ export default function FinancialStatementsTab({
         </button>
       </div>
 
-      {/* STANDARD FINANCE REPORT HEADER (Visible on-screen and on-print) */}
-      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 text-slate-800 space-y-3.5 shadow-3xs">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 pb-3">
-          <div>
-            <span className="text-[10px] font-black text-blue-600 block uppercase tracking-widest leading-none">Legal Entity Name</span>
-            <h3 className="text-sm font-black text-slate-900 mt-1 uppercase">QM-ABC</h3>
-          </div>
-          <div className="sm:text-right">
-            <span className="text-[10px] font-black text-slate-400 block uppercase tracking-widest leading-none">Fiscal Reporting Period</span>
-            <span className="text-xs font-mono font-bold text-slate-700 bg-slate-200/60 px-2.5 py-1 rounded border border-slate-300 inline-block mt-1">
-              {selectedPeriod === 'FY_2026' ? 'FY2026 (Annual Run, Year-To-Date)' : selectedPeriod === 'Q2_2026' ? 'Q2 2026 Ending June 30' : 'Q1 2026 Ending March 31'}
-            </span>
-          </div>
-        </div>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
-          <div>
-            <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest leading-none">Financial Statement Document</span>
-            <span className="font-extrabold text-slate-900 text-sm">
-              {currentView === 'BS' && "Statement of Financial Position (Balance Sheet)"}
-              {currentView === 'PL' && "Statement of Profit or Loss (Income Statement)"}
-              {currentView === 'CF' && "Statement of Cash Flows (IAS 7 Compliance Standard)"}
-              {currentView === 'EQ' && "Statement of Changes in Equity"}
-              {currentView === 'TB' && "Verified Trial Balance Verification Table"}
-            </span>
-          </div>
-          <div className="sm:text-right">
-            <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest leading-none">Reporting Currency Target</span>
-            <span className="font-bold text-slate-700 font-mono text-xs block mt-1">
-              {currency === 'ETB' ? 'ETB (Ethiopian Birr, Br)' : 'USD (US Dollar Proxy, $)'}
-            </span>
-          </div>
-        </div>
-      </div>
+      {/* PROFESSIONAL IFRS-STANDARD REPORT REVOLUTIONARY CARD */}
+      <ReportHeaderCard
+        defaultReportName={
+          currentView === 'BS' ? "Statement of Financial Position" :
+          currentView === 'PL' ? "Statement of Profit or Loss" :
+          currentView === 'CF' ? "Statement of Cash Flows" :
+          currentView === 'EQ' ? "Statement of Changes in Equity" : "Verified Trial Balance Report"
+        }
+        defaultPeriod={selectedPeriod}
+        defaultBranch={selectedBranch}
+        currency={currency}
+        onCurrencyChange={(c) => setCurrency(c)}
+        onPrint={handlePrint}
+        onExportExcel={handleExportCSV}
+      />
 
       {/* Dynamic Content Display */}
       {currentView === 'BS' && (

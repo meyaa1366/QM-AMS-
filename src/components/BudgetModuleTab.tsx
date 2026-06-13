@@ -64,7 +64,7 @@ export default function BudgetModuleTab({ onAddAuditLog }: BudgetModuleTabProps)
       onAddAuditLog({
         id: `AUD-BGT-${Date.now().toString().slice(-4)}`,
         timestamp: new Date().toISOString(),
-        user: 'finance.lead@qmt.com',
+        user: 'finance.lead@mesfinplc.com',
         action,
         entityType: 'BUDGET_MODULE',
         entityKey: key,
@@ -75,16 +75,16 @@ export default function BudgetModuleTab({ onAddAuditLog }: BudgetModuleTabProps)
 
   // Seed Data: Budgets
   const [budgets, setBudgets] = useState([
-    { code: 'B-2026-REV', name: 'Product Sales Revenue Target', company: 'QM-ABC', branch: 'AA-01', year: 'FY2026', scenario: 'BASE', account: '4110 (Sales Revenue)', dept: 'SALES', costCenter: 'CC-SALES', approved: 25000000, revised: 27500000, committed: 0, actual: 21000000, status: 'Released', approval: 'Approved' },
-    { code: 'B-2026-SAL', name: 'AA Headquarters Personnel Salaries', company: 'QM-ABC', branch: 'AA-01', year: 'FY2026', scenario: 'BASE', account: '6110 (Salaries Expense)', dept: 'HR', costCenter: 'CC-HR', approved: 8500000, revised: 8500000, committed: 45000, actual: 5200000, status: 'Released', approval: 'Approved' },
-    { code: 'B-2026-MKT', name: 'Corporate Marketing Campaign', company: 'QM-ABC', branch: 'HQ', year: 'FY2026', scenario: 'OPTIMISTIC', account: '6140 (Marketing Expense)', dept: 'MKT', costCenter: 'CC-MKT', approved: 3500000, revised: 3800000, committed: 200000, actual: 1250000, status: 'Released', approval: 'Approved' },
-    { code: 'B-2026-IT', name: 'SaaS Tool and Server Subscriptions', company: 'QM-ABC', branch: 'HQ', year: 'FY2026', scenario: 'BASE', account: '6130 (Utilities Expense)', dept: 'IT', costCenter: 'CC-IT', approved: 1200000, revised: 1500000, committed: 50000, actual: 950000, status: 'Released', approval: 'Approved' },
-    { code: 'B-2026-CAP', name: 'HQ Server Hardware Upgrades (CAPEX)', company: 'QM-ABC', branch: 'HQ', year: 'FY2026', scenario: 'BASE', account: '1510 (PPE)', dept: 'IT', costCenter: 'CC-IT', approved: 4500000, revised: 4500000, committed: 1800000, actual: 1200000, status: 'Active', approval: 'Approved' },
-    { code: 'B-2026-TRA', name: 'Regional Ops Team Travel Offset', company: 'QM-ABC', branch: 'AD-01', year: 'FY2026', scenario: 'COST_REDUCTION', account: '6160 (Travel Expense)', dept: 'OPS', costCenter: 'CC-OPS', approved: 750000, revised: 60000, committed: 15000, actual: 480000, status: 'Active', approval: 'Approved' }
+    { code: 'B-2026-REV', name: 'Product Sales Revenue Target', company: 'MS-PLC', branch: 'AA-01', year: 'FY2026', scenario: 'BASE', account: '4110 (Sales Revenue)', dept: 'SALES', costCenter: 'CC-SALES', approved: 25000000, revised: 27500000, committed: 0, actual: 21000000, status: 'Released', approval: 'Approved' },
+    { code: 'B-2026-SAL', name: 'AA Headquarters Personnel Salaries', company: 'MS-PLC', branch: 'AA-01', year: 'FY2026', scenario: 'BASE', account: '6110 (Salaries Expense)', dept: 'HR', costCenter: 'CC-HR', approved: 8500000, revised: 8500000, committed: 45000, actual: 5200000, status: 'Released', approval: 'Approved' },
+    { code: 'B-2026-MKT', name: 'Corporate Marketing Campaign', company: 'MS-PLC', branch: 'HQ', year: 'FY2026', scenario: 'OPTIMISTIC', account: '6140 (Marketing Expense)', dept: 'MKT', costCenter: 'CC-MKT', approved: 3500000, revised: 3800000, committed: 200000, actual: 1250000, status: 'Released', approval: 'Approved' },
+    { code: 'B-2026-IT', name: 'SaaS Tool and Server Subscriptions', company: 'MS-PLC', branch: 'HQ', year: 'FY2026', scenario: 'BASE', account: '6130 (Utilities Expense)', dept: 'IT', costCenter: 'CC-IT', approved: 1200000, revised: 1500000, committed: 50000, actual: 950000, status: 'Released', approval: 'Approved' },
+    { code: 'B-2026-CAP', name: 'HQ Server Hardware Upgrades (CAPEX)', company: 'MS-PLC', branch: 'HQ', year: 'FY2026', scenario: 'BASE', account: '1510 (PPE)', dept: 'IT', costCenter: 'CC-IT', approved: 4500000, revised: 4500000, committed: 1800000, actual: 1200000, status: 'Active', approval: 'Approved' },
+    { code: 'B-2026-TRA', name: 'Regional Ops Team Travel Offset', company: 'MS-PLC', branch: 'AD-01', year: 'FY2026', scenario: 'COST_REDUCTION', account: '6160 (Travel Expense)', dept: 'OPS', costCenter: 'CC-OPS', approved: 750000, revised: 60000, committed: 15000, actual: 480000, status: 'Active', approval: 'Approved' }
   ]);
 
   // Form States: Setup New Budget Form
-  const [formCompany, setFormCompany] = useState('QM-ABC');
+  const [formCompany, setFormCompany] = useState('MS-PLC');
   const [formBranch, setFormBranch] = useState('AA-01');
   const [formYear, setFormYear] = useState('FY2026');
   const [formCode, setFormCode] = useState('B-2026-RENT');
@@ -118,7 +118,7 @@ export default function BudgetModuleTab({ onAddAuditLog }: BudgetModuleTabProps)
 
   // CSV paste template import state
   const [importCsv, setImportCsv] = useState(
-    `QM-ABC,HQ,FY2026,B-2026-OFFS,Office Supplies Expense,OPERATING,ORIGINAL,BASE,6130,ADMIN,CC-ADMIN,150000\nQM-ABC,AA-01,FY2026,B-2026-UTIL,Addis Power Grid Allocation,OPERATING,ORIGINAL,BASE,6130,OPS,CC-OPS,480000`
+    `MS-PLC,HQ,FY2026,B-2026-OFFS,Office Supplies Expense,OPERATING,ORIGINAL,BASE,6130,ADMIN,CC-ADMIN,150000\nMS-PLC,AA-01,FY2026,B-2026-UTIL,Addis Power Grid Allocation,OPERATING,ORIGINAL,BASE,6130,OPS,CC-OPS,480000`
   );
 
   // Stats calculation
