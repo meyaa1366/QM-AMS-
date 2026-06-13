@@ -220,3 +220,25 @@ export interface Vendor {
   relatedGLAccount: string;
   auditTrailNotes?: string;
 }
+
+export interface TransactionLine {
+  accountCode: string;
+  accountName: string;
+  debit: number;
+  credit: number;
+  description: string;
+  costCenter?: string;
+  department?: string;
+  project?: string;
+}
+
+export interface PostedTransaction {
+  id: string;
+  source: 'JOURNAL' | 'VOUCHER' | 'CASH_BANK';
+  voucherNo: string;
+  voucherType: string;
+  description: string;
+  date: string;
+  postedBy: string;
+  lines: TransactionLine[];
+}

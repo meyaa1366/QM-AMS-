@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import BusinessTooltip from './BusinessTooltip';
 import { 
   Calendar, 
   PlusCircle, 
@@ -291,7 +292,10 @@ export default function FiscalPeriodTab({ onAddAuditLog }: FiscalPeriodTabProps)
             <Calendar className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">Accounting Period & Fiscal Setup</h2>
+            <h2 className="text-base font-black text-slate-900 uppercase tracking-tight flex items-center gap-1.5 matches-title">
+              <span>Fiscal Period Manager</span>
+              <BusinessTooltip text="Configures and locks calendar periods and accounting years, preventing postings to closed periods for total integrity." />
+            </h2>
             <p className="text-xs text-slate-500 font-medium">Control ledgers, open/close periods, lock transactions and manage tax calendars.</p>
           </div>
         </div>

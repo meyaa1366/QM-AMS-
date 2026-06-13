@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Account, AuditLogEntry } from '../types';
+import { Account, AuditLogEntry, PostedTransaction } from '../types';
+import BusinessTooltip from './BusinessTooltip';
 import { 
   Printer, 
   Download, 
@@ -24,6 +25,8 @@ interface JournalRegisterTabProps {
   auditLogs: AuditLogEntry[];
   onAddAuditLog?: (log: AuditLogEntry) => void;
   isDeveloperView?: boolean;
+  globalTransactions?: PostedTransaction[];
+  onAddTransaction?: (txn: PostedTransaction) => void;
 }
 
 interface BalancedJournalEntry {
@@ -62,7 +65,9 @@ export default function JournalRegisterTab({
   accounts, 
   auditLogs,
   onAddAuditLog,
-  isDeveloperView = false 
+  isDeveloperView = false,
+  globalTransactions,
+  onAddTransaction
 }: JournalRegisterTabProps) {
   const [localSearch, setLocalSearch] = useState<string>('');
   const [filterType, setFilterType] = useState<string>('All');
@@ -170,8 +175,29 @@ export default function JournalRegisterTab({
 
   // Merge Custom newly posted ones + base seeded entries
   const journalEntries = useMemo(() => {
+    if (globalTransactions) {
+      return globalTransactions
+        .filter(t => t.source === 'JOURNAL')
+        .map(t => {
+          const debitLine = t.lines.find(l => l.debit > 0);
+          const creditLine = t.lines.find(l => l.credit > 0);
+          return {
+            id: t.id,
+            timestamp: new Date(t.date).toISOString(),
+            voucherNo: t.voucherNo,
+            debitAccountCode: debitLine ? debitLine.accountCode : 'Unknown',
+            debitAccountName: debitLine ? debitLine.accountName : 'Debit Account',
+            creditAccountCode: creditLine ? creditLine.accountCode : 'Unknown',
+            creditAccountName: creditLine ? creditLine.accountName : 'Credit Account',
+            amount: debitLine ? debitLine.debit : 0,
+            memo: t.description,
+            postedBy: t.postedBy,
+            status: 'POSTED_BALANCED' as const
+          };
+        });
+    }
     return [...customPostedEntries, ...baseSeededEntries];
-  }, [customPostedEntries, baseSeededEntries]);
+  }, [globalTransactions, customPostedEntries, baseSeededEntries]);
 
   // Filter logs
   const filteredJournals = useMemo(() => {
@@ -324,6 +350,28 @@ export default function JournalRegisterTab({
     // Append to posted
     setCustomPostedEntries([newJournal, ...customPostedEntries]);
 
+    if (onAddTransaction) {
+      onAddTransaction({
+        id: newJournal.id,
+        source: 'JOURNAL',
+        voucherNo: generatedVoucherID,
+        voucherType: voucherType,
+        description: newJournal.memo,
+        date: postingDate,
+        postedBy: newJournal.postedBy,
+        lines: lines.map(l => ({
+          accountCode: l.accountCode,
+          accountName: l.accountName,
+          debit: l.debit,
+          credit: l.credit,
+          description: l.description,
+          costCenter: l.costCenter,
+          department: l.department,
+          project: l.project
+        }))
+      });
+    }
+
     // Generate Audit Log
     if (onAddAuditLog) {
       onAddAuditLog({
@@ -402,9 +450,10 @@ export default function JournalRegisterTab({
       {/* Title block with Workdesk Toggles */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-5 rounded-2xl border border-slate-200 shadow-xs gap-4">
         <div>
-          <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+          <h2 className="text-lg font-black text-slate-900 flex items-center gap-1.5 matches-title">
             <Coins className="w-5 h-5 text-indigo-600" />
-            <span>Double-Entry Transactions Workstation</span>
+            <span>General Journal Register</span>
+            <BusinessTooltip text="The chronological record of double-entry financial bookings. Consolidates general ledger transfers, debit/credit matching checkpoints, and auditable operational logs." />
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             Standard journal voucher booking deck with real-time balance checks, ERCA tax validations, and multi-cost-center segment assignment.

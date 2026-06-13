@@ -2,6 +2,7 @@ import React from 'react';
 import { Sliders, Search, ArrowRight, Layers, HelpCircle } from 'lucide-react';
 import { LookupGroup } from '../types';
 import { LOOKUP_GROUPS } from '../data';
+import BusinessTooltip from './BusinessTooltip';
 
 interface LookupMasterTabProps {
   onNavigateToData: (groupKey: string) => void;
@@ -19,8 +20,9 @@ export default function LookupMasterTab({
             <Sliders className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="font-sans font-extrabold text-title-lg text-slate-900 leading-tight">
-              Lookup Master Directories
+            <h3 className="font-sans font-extrabold text-title-lg text-slate-900 leading-tight flex items-center gap-1.5 matches-title">
+              <span>Lookup Directories</span>
+              <BusinessTooltip text="Masters of corporate organizational hierarchies and lookup metadata keys including business sectors, ERP branches, and VAT classification codes." />
             </h3>
             <p className="text-body-xs text-outline mt-1 font-medium">
               Segment mappings, corporate divisions, base currency records, and transaction indicators

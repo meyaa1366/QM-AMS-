@@ -12,6 +12,7 @@ import {
   CheckSquare 
 } from 'lucide-react';
 import { Account, AccountType, AccountStatus, ApprovalStatus, SLType, DimensionControl, BalanceType } from '../types';
+import BusinessTooltip from './BusinessTooltip';
 import { 
   COMPANIES, 
   BRANCHES, 
@@ -448,11 +449,12 @@ export default function AddEditAccountTab({
             <PlusCircle className="w-5.5 h-5.5" />
           </div>
           <div>
-            <h3 className="font-sans font-extrabold text-base text-slate-900 leading-tight">
-              {selectedAccount ? `Adjust Account Settings: [${code}]` : 'Create Chart of Accounts Record'}
+            <h3 className="font-sans font-extrabold text-[#111827] text-base leading-none flex items-center gap-1.5 matches-title">
+              <span>{selectedAccount ? "Account Settings Form" : "Account Registry Form"}</span>
+              <BusinessTooltip text="Central utility to define, edit, and configure Chart of Accounts elements. Assigns account categories, IFRS balance sheet lines, tax categories, and active subledger settings." />
             </h3>
             <p className="text-[10px] text-slate-500 mt-1 font-medium font-sans">
-              Define IFRS-aligned ledger accounts with posting control, tax mapping, reporting dimensions, and audit approval.
+              Define IFRS-aligned ledger accounts with local Ethiopian tax parameters, active posting policies, and controls.
             </p>
           </div>
         </div>

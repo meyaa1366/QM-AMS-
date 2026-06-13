@@ -16,6 +16,7 @@ import DevImplementationGuideTab from './components/DevImplementationGuideTab';
 import BudgetModuleTab from './components/BudgetModuleTab';
 import APARSubmoduleTab from './components/APARSubmoduleTab';
 import CashBankModuleTab from './components/CashBankModuleTab';
+import FinancialDisclosureNotesTab from './components/FinancialDisclosureNotesTab';
 import { 
   IFRSClassificationTab, 
   EthiopianTaxTab, 
@@ -28,7 +29,7 @@ import {
   AuditTrailTab 
 } from './components/SpecsTabHolders';
 
-import { Account, EnumValue, LookupValue, AuditLogEntry, AccountStatus, ApprovalStatus, VoucherType } from './types';
+import { Account, EnumValue, LookupValue, AuditLogEntry, AccountStatus, ApprovalStatus, VoucherType, PostedTransaction } from './types';
 import { 
   INITIAL_ACCOUNTS, 
   INITIAL_ENUM_VALUES, 
@@ -61,6 +62,68 @@ export default function App() {
   const [lookupValues, setLookupValues] = useState<LookupValue[]>(INITIAL_LOOKUP_VALUES);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(INITIAL_AUDIT_LOGS);
   const [voucherTypes, setVoucherTypes] = useState<VoucherType[]>(INITIAL_VOUCHERS);
+
+  // Global posted transactions registry (feeds Financial Statements, Ledger Cards, and Journals dynamically)
+  const [globalTransactions, setGlobalTransactions] = useState<PostedTransaction[]>(() => {
+    return [
+      {
+        id: 'TXN-001',
+        source: 'JOURNAL',
+        voucherNo: 'REC-ETH-2026-001x',
+        voucherType: 'JV',
+        description: 'Consolidated commercial operating export revenue transfer',
+        date: '2026-06-10',
+        postedBy: 'mzerihun01@gmail.com',
+        lines: [
+          { accountCode: '1110', accountName: 'Cash and Bank Equivalents', debit: 8540200.50, credit: 0, description: 'Consolidated revenue receipt' },
+          { accountCode: '4000', accountName: 'Revenue / Operating Revenue', debit: 0, credit: 8540200.50, description: 'Revenue allocation' }
+        ]
+      },
+      {
+        id: 'TXN-002',
+        source: 'JOURNAL',
+        voucherNo: 'V-25-102',
+        voucherType: 'JV',
+        description: 'Intercompany short-term credit facility clearance',
+        date: '2026-06-10',
+        postedBy: 'senior_auditor@fincorp.com',
+        lines: [
+          { accountCode: '1120', accountName: 'Trade Receivables (Intercompany)', debit: 320000.00, credit: 0, description: 'Receivable outstanding cleared' },
+          { accountCode: '1110', accountName: 'Cash and Bank Equivalents', debit: 0, credit: 320000.00, description: 'Treasury payment out' }
+        ]
+      },
+      {
+        id: 'TXN-003',
+        source: 'JOURNAL',
+        voucherNo: 'V-25-302',
+        voucherType: 'JV',
+        description: 'Monthly ERCA tax filing return settlement',
+        date: '2026-06-10',
+        postedBy: 'mzerihun01@gmail.com',
+        lines: [
+          { accountCode: '2210', accountName: 'VAT Payable (ERCA Input)', debit: 1673133.24, credit: 0, description: 'ERCA tax ledger settlement' },
+          { accountCode: '1110', accountName: 'Cash and Bank Equivalents', debit: 0, credit: 1673133.24, description: 'Commercial account settlement payout' }
+        ]
+      },
+      {
+        id: 'TXN-004',
+        source: 'JOURNAL',
+        voucherNo: 'JV-2026-90',
+        voucherType: 'JV',
+        description: 'Raw materials import consignment clearance matching voucher',
+        date: '2026-06-10',
+        postedBy: 'mzerihun01@gmail.com',
+        lines: [
+          { accountCode: '5110', accountName: 'Direct Cost of Sales - Raw Materials', debit: 1450000.50, credit: 0, description: 'Cost of materials import clearance' },
+          { accountCode: '2110', accountName: 'Trade Payables (Accts Payable)', debit: 0, credit: 1450000.50, description: 'Withholding clearance matching payables' }
+        ]
+      }
+    ];
+  });
+
+  const handleAddTransaction = (txn: PostedTransaction) => {
+    setGlobalTransactions(prev => [txn, ...prev]);
+  };
 
   // Buffer state when editing a ledger account
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -511,17 +574,27 @@ export default function App() {
                 const tabMap = { 'BS': 'balance-sheet', 'PL': 'income-statement', 'CF': 'cashflows', 'EQ': 'changes-equity', 'TB': 'financial-statements' };
                 setActiveTab(tabMap[view] || 'balance-sheet');
               }}
+              globalTransactions={globalTransactions}
             />
           )}
 
           {/* TAB: Ethiopian General Ledger Cards */}
           {activeTab === 'ledger-card' && (
-            <LedgerCardTab accounts={accounts} />
+            <LedgerCardTab 
+              accounts={accounts} 
+              globalTransactions={globalTransactions} 
+            />
           )}
 
           {/* TAB: General Journal Transaction Registers */}
           {activeTab === 'journal-register' && (
-            <JournalRegisterTab accounts={accounts} auditLogs={auditLogs} />
+            <JournalRegisterTab 
+              accounts={accounts} 
+              auditLogs={auditLogs} 
+              globalTransactions={globalTransactions}
+              onAddTransaction={handleAddTransaction}
+              onAddAuditLog={(log) => setAuditLogs(prev => [log, ...prev])}
+            />
           )}
 
           {/* TAB: AMS Voucher Workdesk (SAP/NetSuite Grade Framework) */}
@@ -541,6 +614,7 @@ export default function App() {
                 setAuditLogs(prev => [mapped as any, ...prev]);
                 triggerToast(`Voucher action: ${log.description}`, 'success');
               }}
+              onAddTransaction={handleAddTransaction}
             />
           )}
 
@@ -677,6 +751,30 @@ export default function App() {
               activeTab === 'cash-bank-comparison' ? 'comparison' :
               'dashboard'
             } />
+          )}
+
+          {/* TAB 17: IFRS Corporate disclosure notes compiler workspace */}
+          {(activeTab === 'note-disclosure-workspace' || activeTab.startsWith('note-')) && (
+            <FinancialDisclosureNotesTab 
+              accounts={accounts}
+              onAddAuditLog={(log) => {
+                const mapped: AuditLogEntry = {
+                  id: log.id,
+                  timestamp: log.timestamp,
+                  user: log.user,
+                  action: log.action,
+                  entityType: log.entityType,
+                  entityKey: log.entityKey,
+                  description: log.description
+                };
+                setAuditLogs(prev => [mapped, ...prev]);
+                triggerToast(`Disclosure change: ${log.description}`, 'success');
+              }}
+              activeMenuId={activeTab.startsWith('note-') ? activeTab.replace('note-', '') : undefined}
+              onActiveMenuIdChange={(id) => {
+                setActiveTab(`note-${id}`);
+              }}
+            />
           )}
 
         </div>

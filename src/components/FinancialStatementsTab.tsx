@@ -10,13 +10,14 @@ import {
   CheckCircle2, ArrowRightLeft, DollarSign, ArrowUpRight, ShieldAlert,
   ChevronRight, ArrowDownRight, Layers, Coins, Undo2
 } from 'lucide-react';
-import { Account, AccountType } from '../types';
+import { Account, AccountType, PostedTransaction } from '../types';
 import ReportHeaderCard from './ReportHeaderCard';
 
 interface FinancialStatementsTabProps {
   accounts: Account[];
   activeView?: 'BS' | 'PL' | 'CF' | 'EQ' | 'TB';
   onViewChange?: (view: 'BS' | 'PL' | 'CF' | 'EQ' | 'TB') => void;
+  globalTransactions?: PostedTransaction[];
 }
 
 type StatementView = 'PL' | 'BS' | 'TB' | 'CF' | 'EQ';
@@ -25,7 +26,8 @@ type CurrencyMode = 'ETB' | 'USD';
 export default function FinancialStatementsTab({ 
   accounts, 
   activeView, 
-  onViewChange 
+  onViewChange,
+  globalTransactions
 }: FinancialStatementsTabProps) {
   const [internalView, setInternalView] = useState<StatementView>('BS');
   const [selectedCompany, setSelectedCompany] = useState<string>('All');
@@ -91,6 +93,28 @@ export default function FinancialStatementsTab({
         else amt = 900000 + (seed % 100) * 8000;
       }
 
+      // Add dynamic transactions from globalTransactions if specified
+      if (globalTransactions) {
+        let txEffect = 0;
+        globalTransactions.forEach(t => {
+          t.lines.forEach(line => {
+            if (line.accountCode === acc.code) {
+              const debit = line.debit || 0;
+              const credit = line.credit || 0;
+
+              if (acc.accountType === 'Asset' || acc.accountType === 'Expense' || acc.accountType === 'Cost of Sales') {
+                // Debit normal accounts: increase with Debit, decrease with Credit
+                txEffect += (debit - credit);
+              } else {
+                // Credit normal accounts: increase with Credit, decrease with Debit
+                txEffect += (credit - debit);
+              }
+            }
+          });
+        });
+        amt += txEffect;
+      }
+
       // If aggregate line is level 1 or 2 (parents), sum later
       if (!acc.postingAllowed) {
         balances[acc.code] = 0;
@@ -100,7 +124,7 @@ export default function FinancialStatementsTab({
     });
 
     return balances;
-  }, [accounts]);
+  }, [accounts, globalTransactions]);
 
   // Handle manual spreadsheet refresh simulation
   const triggerRefresh = () => {

@@ -11,6 +11,7 @@ import {
   Lightbulb, ShieldCheck as SecurityIcon, Lock
 } from 'lucide-react';
 import { VoucherType } from '../types';
+import BusinessTooltip from './BusinessTooltip';
 
 interface VoucherRegistryViewProps {
   voucherTypes: VoucherType[];
@@ -186,7 +187,10 @@ export default function VoucherRegistryView({
           {/* Configuration Registry Header and Filters */}
           <div className="flex flex-col md:flex-row justify-between items-stretch md:items-end gap-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900 tracking-tight">QM AMS Configuration Registry</h2>
+              <h2 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-1.5 matches-title">
+                <span>Posting Control Matrix</span>
+                <BusinessTooltip text="Authorized checklist and validation rules regulating which journals are permitted to hit the accounts ledger. Restricts manual entry and forces automated routing specs." />
+              </h2>
               <p className="text-xs text-slate-500 mt-0.5">Manage global voucher schemas and automatic ledger routing sequences under IFRS guidelines.</p>
             </div>
             

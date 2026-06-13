@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Account } from '../types';
+import BusinessTooltip from './BusinessTooltip';
 import { 
   Printer, 
   Download, 
@@ -41,6 +42,7 @@ import {
 interface VoucherFrameworkTabProps {
   accounts: Account[];
   onAddAuditLog: (log: any) => void;
+  onAddTransaction?: (txn: any) => void;
 }
 
 interface VoucherItem {
@@ -154,7 +156,7 @@ const INITIAL_VOUCHERS: VoucherItem[] = [
   }
 ];
 
-export default function VoucherFrameworkTab({ accounts, onAddAuditLog }: VoucherFrameworkTabProps) {
+export default function VoucherFrameworkTab({ accounts, onAddAuditLog, onAddTransaction }: VoucherFrameworkTabProps) {
   // Navigation
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'entry' | 'inquiry' | 'rules' | 'reports'>('entry');
   const [vouchersList, setVouchersList] = useState<VoucherItem[]>(INITIAL_VOUCHERS);
@@ -548,6 +550,28 @@ export default function VoucherFrameworkTab({ accounts, onAddAuditLog }: Voucher
     setVouchersList([newVoucher, ...vouchersList]);
     setSelectedVoucherForDetails(newVoucher);
 
+    if (actionName === 'Posted' && onAddTransaction) {
+      onAddTransaction({
+        id: `TXN-VCH-${Date.now()}`,
+        source: 'VOUCHER',
+        voucherNo: currentVNo,
+        voucherType: hdrVoucherType,
+        description: hdrNotes || `${hdrVoucherType} transaction business voucher processing.`,
+        date: hdrPostingDate,
+        postedBy: 'senior_accountant@abc.et',
+        lines: formLines.map(fl => ({
+          accountCode: fl.accountCode,
+          accountName: fl.accountName,
+          debit: fl.debit,
+          credit: fl.credit,
+          description: fl.description,
+          costCenter: fl.costCenter,
+          department: fl.department,
+          project: fl.project
+        }))
+      });
+    }
+
     // Sync form status representation for workflow tracking
     if (actionName === 'Draft' || actionName === 'Submitted' || actionName === 'Under Review' || actionName === 'Approved' || actionName === 'Posted') {
       setCurrentFormStatus(actionName);
@@ -610,6 +634,28 @@ export default function VoucherFrameworkTab({ accounts, onAddAuditLog }: Voucher
     setVouchersList([reversalVoucher, ...vouchersList]);
     setSelectedVoucherForDetails(reversalVoucher);
 
+    if (onAddTransaction) {
+      onAddTransaction({
+        id: `TXN-RCV-${Date.now()}`,
+        source: 'VOUCHER',
+        voucherNo: rcvVoucherNo,
+        voucherType: 'RCV',
+        description: `IFRS COMPLIANT AUTO-REVERSAL CONTRA FOR DOCUMENT: ${targetVoucher.voucherNo}. Correction of erroneous entries.`,
+        date: targetVoucher.postingDate || new Date().toISOString().substring(0, 10),
+        postedBy: 'senior_accountant@abc.et',
+        lines: contraLines.map(fl => ({
+          accountCode: fl.accountCode,
+          accountName: fl.accountName,
+          debit: fl.debit,
+          credit: fl.credit,
+          description: fl.description,
+          costCenter: fl.costCenter,
+          department: fl.department,
+          project: fl.project
+        }))
+      });
+    }
+
     onAddAuditLog({
       id: `AUD-REV-${Date.now()}`,
       timestamp: new Date().toISOString(),
@@ -649,9 +695,10 @@ export default function VoucherFrameworkTab({ accounts, onAddAuditLog }: Voucher
             <Sparkles className="w-3.5 h-3.5" />
             <span>SAP S/4HANA & DYNAMICS 365 ERP ALIGNMENT</span>
           </div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-1.5 matches-title">
             <Landmark className="w-6 h-6 text-indigo-600" />
-            <span>VMF • ERP Business Transactions Workspace</span>
+            <span>Voucher Workdesk</span>
+            <BusinessTooltip text="An advanced system to design, draft, automate, and approve business transaction vouchers. Validates and pushes real-time double-entry compliance rules automatically." />
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             IFRS general ledger controller with statutory ERCA tax compliance engines. Select a business transaction and let the ledger auto-calculate double entries.

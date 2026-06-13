@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Account } from '../types';
+import { Account, PostedTransaction } from '../types';
 import ReportHeaderCard from './ReportHeaderCard';
+import BusinessTooltip from './BusinessTooltip';
 import { Printer, Download, Eye, FileSpreadsheet, Building2, Calendar, FileText, Search, CreditCard, Layers } from 'lucide-react';
 
 interface LedgerCardTabProps {
   accounts: Account[];
+  globalTransactions?: PostedTransaction[];
 }
 
 interface LedgerTransaction {
@@ -20,7 +22,7 @@ interface LedgerTransaction {
   credit: number;
 }
 
-export default function LedgerCardTab({ accounts }: LedgerCardTabProps) {
+export default function LedgerCardTab({ accounts, globalTransactions }: LedgerCardTabProps) {
   // Select active account to show card for
   const postingAccounts = useMemo(() => {
     return accounts.filter(a => a.postingAllowed);
@@ -111,8 +113,36 @@ export default function LedgerCardTab({ accounts }: LedgerCardTabProps) {
   }, [postingAccounts]);
 
   const transactions = useMemo(() => {
-    return mockTransactionsMap[selectedAccountCode] || [];
-  }, [mockTransactionsMap, selectedAccountCode]);
+    const defaultTxns = mockTransactionsMap[selectedAccountCode] || [];
+
+    if (globalTransactions) {
+      // Find all live posted transactions matching the selected account
+      const matchedGlobal = globalTransactions.filter(t => 
+        t.lines.some(l => l.accountCode === selectedAccountCode)
+      );
+
+      // Convert each Global transaction to LedgerTransaction format
+      const mappedGlobal = matchedGlobal.flatMap(t => {
+        const matchingLines = t.lines.filter(l => l.accountCode === selectedAccountCode);
+        return matchingLines.map((ml, idx) => ({
+          id: `${t.id}-${idx}`,
+          no: 9991 + idx,
+          date: new Date(t.date).toLocaleDateString(),
+          period: 'Current Period',
+          itemNumber: t.voucherNo,
+          voucherNo: t.voucherNo,
+          voucherType: t.voucherType || t.source,
+          description: ml.description || t.description,
+          debit: ml.debit,
+          credit: ml.credit
+        }));
+      });
+
+      return [...defaultTxns, ...mappedGlobal];
+    }
+
+    return defaultTxns;
+  }, [mockTransactionsMap, selectedAccountCode, globalTransactions]);
 
   // Rolling calculation of balances
   const calculatedTransactions = useMemo(() => {
@@ -206,7 +236,10 @@ export default function LedgerCardTab({ accounts }: LedgerCardTabProps) {
               <FileSpreadsheet className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-black text-slate-900">General Ledger Card Generator</h3>
+              <h3 className="text-base font-black text-slate-900 flex items-center gap-1.5 matches-title">
+                <span>General Ledger Card</span>
+                <BusinessTooltip text="A statement of historical transactions, debits, credits, and rolling balances loaded under a specific general ledger coordinate code." />
+              </h3>
               <p className="text-xs text-slate-500 mt-1">Conforms to EFY / IFRS physical and double-entry auditing cards</p>
             </div>
           </div>

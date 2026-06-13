@@ -13,6 +13,7 @@ import {
   Tag
 } from 'lucide-react';
 import { LookupValue, LookupGroup } from '../types';
+import BusinessTooltip from './BusinessTooltip';
 import { LOOKUP_GROUPS } from '../data';
 
 interface LookupDataTabProps {
@@ -103,8 +104,9 @@ export default function LookupDataTab({
             <Tag className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="font-sans font-extrabold text-title-lg text-slate-900 leading-tight">
-              Lookup Data Master
+            <h3 className="font-sans font-extrabold text-title-lg text-slate-900 leading-tight flex items-center gap-1.5 matches-title">
+              <span>Lookup Data Mapping</span>
+              <BusinessTooltip text="Interactive ledger records mapped to corporate divisions, segments, VAT classes, and currency exchange codes used to dynamically route journal transactions." />
             </h3>
             <p className="text-body-xs text-outline mt-1 font-medium pb-1">
               Configure IFRS-based ledger accounts, lookup values, posting controls, and tax mappings

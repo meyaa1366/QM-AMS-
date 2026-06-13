@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import BusinessTooltip from './BusinessTooltip';
 import { 
   Coins, 
   Layers, 
@@ -321,7 +322,10 @@ export default function BudgetModuleTab({ onAddAuditLog }: BudgetModuleTabProps)
             <Coins className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <h2 className="text-base font-black text-slate-900 uppercase tracking-tight">IFRS Budget Management Setup</h2>
+            <h2 className="text-base font-black text-slate-900 uppercase tracking-tight flex items-center gap-1.5 matches-title">
+              <span>Budget Setup & Controls</span>
+              <BusinessTooltip text="Configures authorized expenditures per account group, controls thresholds to prevent ledger overdrawing, and compares draft forecasts with actual postings." />
+            </h2>
             <p className="text-xs text-slate-500 font-medium">Configure corporate budgets, scenarios, control thresholds and secure transfers.</p>
           </div>
         </div>

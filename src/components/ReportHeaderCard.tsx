@@ -11,6 +11,7 @@ import {
   User, 
   Briefcase 
 } from 'lucide-react';
+import BusinessTooltip from './BusinessTooltip';
 
 interface ReportHeaderCardProps {
   defaultReportName: string;
@@ -35,6 +36,23 @@ const REPORT_NAMES = [
   "Customer Statement",
   "Budget vs Actual Report"
 ];
+
+const REPORT_DESCRIPTIONS: Record<string, string> = {
+  "Statement of Financial Position": "A snapshot of the organization's financial health, listing Assets, Liabilities, and Equity to assess solvency and valuation.",
+  "Statement of Profit or Loss": "A summary of revenues, cost of sales, and operational expenses over a specific period to calculate net profitability.",
+  "Statement of Cash Flows": "An analysis of cash inflows and outflows categorized by Operating, Investing, and Financing activities.",
+  "Statement of Changes in Equity": "Details the shifts in owners' capital, reserves, and retained earnings during the current fiscal year.",
+  "Notes to the Financial Statements": "Comprehensive narratives and direct ledger account breakdowns requested to explain statement balances fully.",
+  "AP Aging Report": "Tracks supplier liabilities categorized by time elapsed to manage upcoming cash payout obligations.",
+  "AR Aging Report": "Analysis of customer receivables grouped by past-due periods to monitor collections efficiency and bad debts.",
+  "Supplier Statement": "Reconciliation card showing all invoices, credit notes, and payments issued to a specific vendor.",
+  "Customer Statement": "Chronological report of billings and cash received against a specific client account for payment confirmations.",
+  "Budget vs Actual Report": "Operational card matching actual general ledger postings against approved budget allocations to identify variances.",
+  "Integrated Treasury Liquidity & Cash Control Dashboard": "Real-time monitoring of corporate bank accounts, petty cash balances, intercompany fund transfers, and live bank reconciliation statements.",
+  "Primary Financial Statements": "Consolidated auditor sheet including Balance Sheet, Income Statement, Cash Flows, Equity, and Trial Balance Verification registers.",
+  "Ethiopian General Ledger Card Workspace": "A statement of historical transactions, debits, credits, and rolling balances loaded under a specific general ledger coordinate code.",
+  "IFRS Disclosure Notes Publication Compiler": "Comprehensive narrative footnotes and detailed ledger analysis tables justifying corporate statement lines."
+};
 
 const APPROVAL_STATUSES = [
   "Draft",
@@ -336,8 +354,11 @@ export default function ReportHeaderCard({
           <p className="text-sm font-extrabold text-[#111827] uppercase tracking-widest leading-none font-sans print:text-xs">
             {legalEntity}
           </p>
-          <h2 className="text-xl md:text-2xl font-black text-[#0f172a] uppercase tracking-tight font-sans py-0.5 print:text-lg">
-            {reportName}
+          <h2 className="text-xl md:text-2xl font-black text-[#0f172a] uppercase tracking-tight font-sans py-0.5 print:text-lg flex items-center justify-center gap-1.5 matches-heading">
+            <span>{reportName}</span>
+            <span className="print:hidden">
+              <BusinessTooltip text={REPORT_DESCRIPTIONS[reportName] || "Comprehensive financial report generated directly from general ledger mappings."} />
+            </span>
           </h2>
           <p className="text-xs md:text-sm text-slate-500 font-medium tracking-tight italic print:text-xs print:text-slate-600">
             {reportingPeriod}

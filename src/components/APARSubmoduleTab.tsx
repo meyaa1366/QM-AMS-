@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import BusinessTooltip from './BusinessTooltip';
 import {
   FileText,
   Users,
@@ -543,10 +544,11 @@ export default function APARSubmoduleTab({
             <Building className="w-8 h-8" />
           </div>
           <div>
-            <h2 className="text-xl font-sans font-black text-slate-900 tracking-tight flex items-center gap-2">
-              AP & AR Submodule Setup Workspace
-              <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200 uppercase">
-                Enterprise Spec (Mesfin PLC)
+            <h2 className="text-xl font-sans font-black text-slate-900 tracking-tight flex items-center gap-1.5 matches-title">
+              <span>AP & AR Subledger</span>
+              <BusinessTooltip text="Trade payables and trade receivables workbook. Allows registering suppliers and customers, analyzing monthly past-due aging categories, and managing compliance gating requirements." />
+              <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full border border-emerald-200 uppercase ml-2">
+                Enterprise Spec
               </span>
             </h2>
             <p className="text-xs text-slate-500 font-medium mt-1">

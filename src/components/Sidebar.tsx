@@ -80,6 +80,9 @@ export default function Sidebar({
   const isCollapsed = onToggleCollapse ? outerCollapsed : localCollapsed;
   const toggleCollapseActual = onToggleCollapse ? onToggleCollapse : () => setLocalCollapsed(!localCollapsed);
 
+  const [primaryStatementsExpanded, setPrimaryStatementsExpanded] = useState(true);
+  const [notesStatementsExpanded, setNotesStatementsExpanded] = useState(true);
+
   // Grouped Menu Structure as explicitly requested by user
   const mainMenus: MainMenuGroup[] = [
     {
@@ -133,17 +136,39 @@ export default function Sidebar({
       ]
     },
     {
-      id: 'reports',
-      label: 'Reports',
-      icon: FileBarChart2,
+      id: 'financial-reporting',
+      label: 'Financial Reporting',
+      icon: BookOpen,
       items: [
-        { id: 'financial-statements', label: 'Trial Balance Auditor Spec', icon: FileText },
+        // Primary financial statements
+        { id: 'financial-statements', label: 'Primary Financial Statements', icon: FileText },
         { id: 'balance-sheet', label: '1. Financial Position (BS)', icon: FileText },
         { id: 'income-statement', label: '2. Profit & Loss (P&L)', icon: FileText },
         { id: 'cashflows', label: '3. Statement of Cash Flows', icon: FileText },
         { id: 'changes-equity', label: '4. Changes in Equity', icon: FileText },
-        { id: 'ledger-card', label: '6. General Ledger Cards', icon: FileText, badge: 'New' },
-        { id: 'audit-trail', label: 'Continuous Audit Trail', icon: History }
+        { id: 'ledger-card', label: '6. General Ledger Cards', icon: FileText },
+        { id: 'audit-trail', label: 'Continuous Audit Trail', icon: History },
+        // Notes to financial statements
+        { id: 'note-general-info', label: 'General Information', icon: FileText },
+        { id: 'note-compliance-ifrs', label: 'Statement of Compliance with IFRS', icon: FileText },
+        { id: 'note-accounting-policies', label: 'Significant Accounting Policies', icon: FileText },
+        { id: 'note-judgments-estimates', label: 'Critical Judgments and Estimates', icon: FileText },
+        { id: 'note-pos-notes', label: 'Statement of Financial Position Notes', icon: FileText },
+        { id: 'note-pl-notes', label: 'Statement of Profit or Loss Notes', icon: FileText },
+        { id: 'note-cashflow-reco', label: 'Statement of Cash Flow Notes', icon: FileText },
+        { id: 'note-equity-notes', label: 'Statement of Changes in Equity Notes', icon: FileText },
+        { id: 'note-risk-management', label: 'Financial Risk Management', icon: FileText },
+        { id: 'note-capital-mgmt', label: 'Capital Management', icon: FileText },
+        { id: 'note-related-parties', label: 'Related Party Disclosure', icon: FileText },
+        { id: 'note-segment-report', label: 'Segment Reporting', icon: FileText },
+        { id: 'note-contingencies', label: 'Contingencies and Commitments', icon: FileText },
+        { id: 'note-post-balance-events', label: 'Subsequent Events', icon: FileText },
+        { id: 'note-going-concern', label: 'Going Concern Disclosure', icon: FileText },
+        { id: 'note-consolidation-notes', label: 'Consolidation Notes', icon: FileText },
+        { id: 'note-comparatives-check', label: 'Comparative Information', icon: FileText },
+        { id: 'note-interactive-builder', label: 'Disclosure Note Builder', icon: FileText },
+        { id: 'note-workflow-approval', label: 'Note Review & Signing Workflow', icon: FileText },
+        { id: 'note-publication-book', label: 'Notes Publication Compiler', icon: FileText }
       ]
     },
     {
@@ -193,6 +218,7 @@ export default function Sidebar({
     'master-data': true,
     'transactions': true,
     'cash-bank-module': true,
+    'financial-reporting': true,
     'apar-subledger': true
   });
 
@@ -378,56 +404,211 @@ export default function Sidebar({
               {/* Collapsed/Expanded Nested Submenu items */}
               {(isGroupExpanded || isCollapsed) && (
                 <div className={`mt-0.5 space-y-0.5 ${!isCollapsed ? 'pl-4 pr-1 border-l border-slate-800/60 ml-3.5' : 'flex flex-col items-center'}`}>
-                  {group.items.map((item) => {
-                    const ItemIcon = item.icon;
-                    const isSelected = activeTab === item.id || 
-                      (item.id === 'balance-sheet' && activeTab === 'financial-statements');
+                  {group.id === 'financial-reporting' ? (
+                    isCollapsed ? (
+                      <>
+                        <button
+                          onClick={() => onNavigate('financial-statements')}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                            activeTab === 'financial-statements' || ['balance-sheet', 'income-statement', 'cashflows', 'changes-equity', 'ledger-card'].includes(activeTab)
+                              ? 'bg-indigo-650 text-white' 
+                              : 'text-slate-400 hover:bg-slate-850 hover:text-slate-200'
+                          }`}
+                          title="Primary Financial Statements"
+                        >
+                          <FileBarChart2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => onNavigate('note-general-info')}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer mt-1.5 ${
+                            activeTab.startsWith('note-') 
+                              ? 'bg-indigo-650 text-white' 
+                              : 'text-slate-400 hover:bg-slate-850 hover:text-slate-200'
+                          }`}
+                          title="Notes to Financial Statements"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-[11px] font-sans text-slate-400 select-none space-y-2 mt-1">
+                        {/* Branch 1: Primary Financial Statements */}
+                        <div className="space-y-1">
+                          <button
+                            onClick={() => setPrimaryStatementsExpanded(!primaryStatementsExpanded)}
+                            className="w-full flex items-center justify-between py-1 px-1 rounded hover:bg-slate-800/20 text-left text-slate-300 hover:text-white transition-colors"
+                          >
+                            <span className="truncate flex items-center gap-1">
+                              <span className="text-slate-600 font-mono">├──</span>
+                              <span className="font-bold">📄 Primary Financial Statements</span>
+                            </span>
+                            <span className="text-[9px] text-slate-500 font-mono shrink-0">
+                              {primaryStatementsExpanded ? '[-]' : '[+]'}
+                            </span>
+                          </button>
 
-                    if (isCollapsed) {
+                          {primaryStatementsExpanded && (
+                            <div className="pl-4 space-y-0.5 border-l border-slate-800/80 ml-3.5 pt-0.5">
+                              {[
+                                { id: 'financial-statements', label: 'Trial Balance Auditor Spec' },
+                                { id: 'balance-sheet', label: '1. Financial Position (BS)' },
+                                { id: 'income-statement', label: '2. Profit & Loss (P&L)' },
+                                { id: 'cashflows', label: '3. Statement of Cash Flows' },
+                                { id: 'changes-equity', label: '4. Changes in Equity' },
+                                { id: 'ledger-card', label: '6. General Ledger Cards', badge: 'New' },
+                                { id: 'audit-trail', label: 'Continuous Audit Trail' },
+                              ].map((item, index, arr) => {
+                                const isSelected = activeTab === item.id || (item.id === 'balance-sheet' && activeTab === 'financial-statements');
+                                const isLast = index === arr.length - 1;
+                                return (
+                                  <button
+                                    key={item.id}
+                                    onClick={() => onNavigate(item.id)}
+                                    className={`w-full flex items-center justify-between text-left py-1 px-2 rounded-md hover:bg-slate-800/40 transition-colors ${
+                                      isSelected 
+                                        ? 'bg-indigo-950/75 text-indigo-305 font-bold border-l-2 border-indigo-500' 
+                                        : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                  >
+                                    <span className="truncate flex items-center gap-1.5">
+                                      <span className="text-slate-700 font-mono">{isLast ? '└──' : '├──'}</span>
+                                      <span className="truncate">{item.label}</span>
+                                    </span>
+                                    {item.badge && (
+                                      <span className="text-[8px] font-extrabold px-1 bg-indigo-950/80 text-indigo-400 rounded shrink-0">
+                                        {item.badge}
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Visual spacer line between top level elements */}
+                        <div className="text-slate-750 font-mono text-[9px] -mt-1 ml-0.5 leading-none">│</div>
+
+                        {/* Branch 2: Notes to Financial Statements */}
+                        <div className="space-y-1">
+                          <button
+                            onClick={() => setNotesStatementsExpanded(!notesStatementsExpanded)}
+                            className="w-full flex items-center justify-between py-1 px-1 rounded hover:bg-slate-800/20 text-left text-slate-300 hover:text-white transition-colors"
+                          >
+                            <span className="truncate flex items-center gap-1">
+                              <span className="text-slate-600 font-mono">└──</span>
+                              <span className="font-bold font-sans">📂 Notes to Financial Statements</span>
+                            </span>
+                            <span className="text-[9px] text-slate-500 font-mono shrink-0">
+                              {notesStatementsExpanded ? '[-]' : '[+]'}
+                            </span>
+                          </button>
+
+                          {notesStatementsExpanded && (
+                            <div className="pl-4 space-y-0.5 border-l border-slate-800/80 ml-3.5 pt-0.5 max-h-[300px] overflow-y-auto custom-scrollbar">
+                              {[
+                                { id: 'note-general-info', label: 'General Information' },
+                                { id: 'note-compliance-ifrs', label: 'Statement of Compliance with IFRS' },
+                                { id: 'note-accounting-policies', label: 'Significant Accounting Policies' },
+                                { id: 'note-judgments-estimates', label: 'Critical Judgments and Estimates' },
+                                { id: 'note-pos-notes', label: 'Statement of Financial Position Notes' },
+                                { id: 'note-pl-notes', label: 'Statement of Profit or Loss Notes' },
+                                { id: 'note-cashflow-reco', label: 'Statement of Cash Flow Notes' },
+                                { id: 'note-equity-notes', label: 'Statement of Changes in Equity Notes' },
+                                { id: 'note-risk-management', label: 'Financial Risk Management' },
+                                { id: 'note-capital-mgmt', label: 'Capital Management' },
+                                { id: 'note-related-parties', label: 'Related Party Disclosure' },
+                                { id: 'note-segment-report', label: 'Segment Reporting' },
+                                { id: 'note-contingencies', label: 'Contingencies and Commitments' },
+                                { id: 'note-post-balance-events', label: 'Subsequent Events' },
+                                { id: 'note-going-concern', label: 'Going Concern Disclosure' },
+                                { id: 'note-consolidation-notes', label: 'Consolidation Notes' },
+                                { id: 'note-comparatives-check', label: 'Comparative Information' },
+                                { id: 'note-interactive-builder', label: 'Disclosure Note Builder' },
+                                { id: 'note-workflow-approval', label: 'Note Review & Signing Workflow', badge: 'Admin' },
+                                { id: 'note-publication-book', label: 'Notes Publication Compiler', badge: 'Review' },
+                              ].map((item, index, arr) => {
+                                const isSelected = activeTab === item.id;
+                                const isLast = index === arr.length - 1;
+                                return (
+                                  <button
+                                    key={item.id}
+                                    onClick={() => onNavigate(item.id)}
+                                    className={`w-full flex items-center justify-between text-left py-1 px-1.5 rounded-md hover:bg-slate-800/40 transition-colors ${
+                                      isSelected 
+                                        ? 'bg-indigo-950/75 text-indigo-305 font-bold border-l-2 border-indigo-500' 
+                                        : 'text-slate-400 hover:text-slate-200'
+                                    }`}
+                                  >
+                                    <span className="truncate flex items-center gap-1.5 font-sans">
+                                      <span className="text-slate-700 font-mono">{isLast ? '└──' : '├──'}</span>
+                                      <span className="truncate">{item.label}</span>
+                                    </span>
+                                    {item.badge && (
+                                      <span className="text-[8px] font-extrabold px-1 bg-indigo-950/80 text-indigo-400 rounded shrink-0">
+                                        {item.badge}
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    group.items.map((item) => {
+                      const ItemIcon = item.icon;
+                      const isSelected = activeTab === item.id || 
+                        (item.id === 'balance-sheet' && activeTab === 'financial-statements');
+
+                      if (isCollapsed) {
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => onNavigate(item.id)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              isSelected ? 'bg-indigo-650 text-white' : 'text-slate-400 hover:bg-slate-850 hover:text-slate-200'
+                            }`}
+                            title={item.label}
+                          >
+                            <ItemIcon className="w-3.5 h-3.5" />
+                          </button>
+                        );
+                      }
+
                       return (
                         <button
                           key={item.id}
+                          id={`nav-${item.id}`}
                           onClick={() => onNavigate(item.id)}
-                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                            isSelected ? 'bg-indigo-650 text-white' : 'text-slate-400 hover:bg-slate-850 hover:text-slate-200'
+                          className={`group w-full flex items-center justify-between px-2 py-1 rounded-md transition-all duration-150 text-left cursor-pointer ${
+                            isSelected
+                              ? 'bg-indigo-950/70 text-indigo-305 font-bold'
+                              : 'text-slate-400 hover:bg-slate-800/40 hover:text-white'
                           }`}
-                          title={item.label}
                         >
-                          <ItemIcon className="w-3.5 h-3.5" />
+                          <div className="flex items-center gap-2 min-w-0">
+                            <ItemIcon className={`w-3 h-3 shrink-0 ${isSelected ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
+                            <span className="font-sans text-[11px] tracking-tight truncate">
+                              {item.label}
+                            </span>
+                          </div>
+
+                          {item.badge && (
+                            <span className={`text-[8px] font-extrabold px-1 py-0.2 rounded shrink-0 ${
+                              item.badge === 'Active' 
+                                ? 'bg-emerald-950/80 text-emerald-400' 
+                                : 'bg-indigo-950/80 text-indigo-400'
+                            }`}>
+                              {item.badge}
+                            </span>
+                          )}
                         </button>
                       );
-                    }
-
-                    return (
-                      <button
-                        key={item.id}
-                        id={`nav-${item.id}`}
-                        onClick={() => onNavigate(item.id)}
-                        className={`group w-full flex items-center justify-between px-2 py-1 rounded-md transition-all duration-150 text-left cursor-pointer ${
-                          isSelected
-                            ? 'bg-indigo-950/70 text-indigo-305 font-bold'
-                            : 'text-slate-400 hover:bg-slate-800/40 hover:text-white'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <ItemIcon className={`w-3 h-3 shrink-0 ${isSelected ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
-                          <span className="font-sans text-[11px] tracking-tight truncate">
-                            {item.label}
-                          </span>
-                        </div>
-
-                        {item.badge && (
-                          <span className={`text-[8px] font-extrabold px-1 py-0.2 rounded shrink-0 ${
-                            item.badge === 'Active' 
-                              ? 'bg-emerald-950/80 text-emerald-400' 
-                              : 'bg-indigo-950/80 text-indigo-400'
-                          }`}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
+                    })
+                  )}
                 </div>
               )}
             </div>

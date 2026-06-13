@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import BusinessTooltip from './BusinessTooltip';
 import { 
   Terminal, 
   Database, 
@@ -140,8 +141,9 @@ export default function DevImplementationGuideTab({ accounts = [] }: DevImplemen
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-sans font-black text-slate-100 text-sm md:text-base leading-none">
-                MESFIN PLC ERP FINANCIALS • DEVELOPER WORKSPACE GUIDE
+              <h2 className="font-sans font-black text-slate-100 text-sm md:text-base leading-none flex items-center gap-1.5 matches-title">
+                <span>Developer Guide</span>
+                <BusinessTooltip text="In-depth developer documentation detailing the Chart of Accounts hierarchy rules, ledger code schemas, and IFRS technical specifications for ERP engineers." />
               </h2>
               <span className="bg-amber-500/20 text-amber-400 border border-amber-500/30 font-mono text-[9px] font-black uppercase px-2 py-0.5 rounded tracking-widest">
                 official spec

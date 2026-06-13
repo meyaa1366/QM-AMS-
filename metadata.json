@@ -1,6 +1,6 @@
 {
   "name": "QM AMS",
-  "description": "QM AMS under IFRS & ERCA guidelines.",
+  "description": "QM AMS under IFRS & ERCA guidelines with Transactional Vouchers and corporate Financial Statement Disclosures.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

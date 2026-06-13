@@ -10,6 +10,7 @@ import {
   Sliders
 } from 'lucide-react';
 import { EnumValue } from '../types';
+import BusinessTooltip from './BusinessTooltip';
 
 interface EnumMasterTabProps {
   enumValues: EnumValue[];
@@ -91,8 +92,9 @@ export default function EnumMasterTab({
             <Layers className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="font-sans font-extrabold text-title-lg text-slate-900 leading-tight">
-              Enum Master Dictionary
+            <h3 className="font-sans font-extrabold text-title-lg text-slate-900 leading-tight flex items-center gap-1.5 matches-title">
+              <span>Dimension Dictionary</span>
+              <BusinessTooltip text="Central register of global parameter lists and option tags used across the transaction ledger (types, statuses, levels, and categories)." />
             </h3>
             <p className="text-body-xs text-outline mt-1 font-medium">
               Registered ledger dimensions, status states, and tax applicability option tags

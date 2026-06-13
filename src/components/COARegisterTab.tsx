@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Account, AccountType, AccountStatus, ApprovalStatus } from '../types';
 import { COMPANIES, BRANCHES, ACCOUNT_TYPES } from '../data';
+import BusinessTooltip from './BusinessTooltip';
 
 interface COARegisterTabProps {
   accounts: Account[];
@@ -82,6 +83,17 @@ export default function COARegisterTab({
 
   return (
     <div className="space-y-6 font-sans">
+      {/* Title Header Block */}
+      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-3xs flex items-center justify-between">
+        <h2 className="text-base font-black text-slate-900 uppercase tracking-tight flex items-center gap-1.5 matches-title">
+          <span>Chart of Accounts (COA)</span>
+          <BusinessTooltip text="The structured register of all ledger accounts in the financial system. Organizes assets, liabilities, equity, revenues, and expenses for comprehensive company records." />
+        </h2>
+        <span className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
+          Core Register
+        </span>
+      </div>
+
       {/* Visual Analytics Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Total Accounts */}
