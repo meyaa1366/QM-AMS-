@@ -156,6 +156,23 @@ export function generateAccountingLines(params: {
       break;
     }
 
+    case 'PCV': {
+      // Petty Cash voucher: identical to CPV but explicitly marked for imprest cash boxes
+      const expAcc = accountDr || '5130';
+      const cashAcc = cashAccount.split(' ')[0] || '1111';
+      if (isVAT) {
+        const baseExpense = amtVal / 1.15;
+        const vatAmt = amtVal - baseExpense;
+        lines.push(makeLineObj(1, expAcc, `${memoText} (Excl. VAT) - Payee: ${payerOrPayee}`, baseExpense, 0));
+        lines.push(makeLineObj(2, '1140', `VAT Input Tax 15% - Payee: ${payerOrPayee}`, vatAmt, 0, 'VAT-15', vatAmt));
+        lines.push(makeLineObj(3, cashAcc, `Petty Cash Settle payment to ${payerOrPayee}`, 0, amtVal));
+      } else {
+        lines.push(makeLineObj(1, expAcc, `${memoText} - Payee: ${payerOrPayee}`, amtVal, 0));
+        lines.push(makeLineObj(2, cashAcc, `Petty Cash Settle payment to ${payerOrPayee}`, 0, amtVal));
+      }
+      break;
+    }
+
     case 'CRV': {
       // Cash receipt voucher: Dr cash safe, Cr target revenue or customer subledger
       const targetAcc = accountCr || '4110';

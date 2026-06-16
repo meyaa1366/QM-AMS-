@@ -38,7 +38,14 @@ import {
   ArrowRightLeft,
   Receipt,
   ClipboardList,
-  Sparkles
+  Sparkles,
+  Calculator,
+  Grid,
+  CheckCircle2,
+  Banknote,
+  FileCheck,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -109,30 +116,65 @@ export default function Sidebar({
       ]
     },
     {
-      id: 'transactions',
-      label: 'Transactions',
-      icon: SlidersHorizontal,
+      id: 'cash-bank-management',
+      label: 'Cash & Bank Management',
+      icon: Banknote,
       items: [
-        { id: 'voucher-framework', label: 'AMS Voucher Workdesk', icon: FileText, badge: 'SAP Spec' },
-        { id: 'journal-register', label: 'Journal Transaction Book', icon: BookOpen },
-        { id: 'budget-setup', label: 'Budget Setup & Controls', icon: Coins, badge: 'Active' },
-        { id: 'posting-matrix', label: 'Voucher posting Matrix', icon: Scale }
+        { id: 'voucher-cpv', label: 'Cash Payment Voucher (CPV)', icon: FileText },
+        { id: 'voucher-crv', label: 'Cash Receipt Voucher (CRV)', icon: FileText },
+        { id: 'voucher-pcv', label: 'Petty Cash Voucher', icon: Receipt },
+        { id: 'cash-bank-transactions', label: 'Cash Transaction Register', icon: Coins }
       ]
     },
     {
-      id: 'cash-bank-module',
-      label: 'Cash & Bank Management',
+      id: 'bank-management',
+      label: 'Bank Management',
       icon: Landmark,
       items: [
+        { id: 'voucher-bpv', label: 'Bank Payment Voucher (BPV)', icon: FileText },
+        { id: 'voucher-brv', label: 'Bank Receipt Voucher (BRV)', icon: FileText },
+        { id: 'voucher-btv', label: 'Bank Transfer Voucher (BTV)', icon: ArrowRightLeft },
         { id: 'cash-bank-dashboard', label: 'Treasury Dashboard', icon: Activity },
-        { id: 'cash-bank-masters', label: 'Bank & Cash Masters', icon: Landmark },
-        { id: 'cash-bank-transactions', label: 'Transaction Register', icon: Coins },
-        { id: 'cash-bank-petty', label: 'Imprest Petty Cash', icon: Receipt },
-        { id: 'cash-bank-transfers', label: 'Intercompany Transfers', icon: ArrowRightLeft },
-        { id: 'cash-bank-cheques', label: 'PDC & Cheque Center', icon: ClipboardList },
-        { id: 'cash-bank-reco', label: 'Live Bank Reconciliations', icon: ShieldCheck },
-        { id: 'cash-bank-security', label: 'Access Control & Rules', icon: Lock },
-        { id: 'cash-bank-comparison', label: 'Competitor ERP Matrix', icon: Sparkles }
+        { id: 'cash-bank-reco', label: 'Bank Reconciliations', icon: ShieldCheck },
+        { id: 'cash-bank-cheques', label: 'PDC & Cheque Center', icon: ClipboardList }
+      ]
+    },
+    {
+      id: 'ar-module',
+      label: 'Accounts Receivable',
+      icon: TrendingUp,
+      items: [
+        { id: 'voucher-ari', label: 'Customer Invoice', icon: FileText },
+        { id: 'voucher-arrv', label: 'Customer Receipt Voucher', icon: FileText },
+        { id: 'voucher-cnv', label: 'Credit Note', icon: FileText },
+        { id: 'apar-customers', label: 'Customer Register', icon: Users },
+        { id: 'apar-gating', label: 'Live Compliance Gating', icon: ShieldCheck },
+        { id: 'apar-controls', label: 'AR Setup Controls', icon: Settings }
+      ]
+    },
+    {
+      id: 'ap-module',
+      label: 'Accounts Payable',
+      icon: TrendingDown,
+      items: [
+        { id: 'voucher-api', label: 'Supplier Invoice', icon: FileText },
+        { id: 'voucher-appv', label: 'Supplier Payment Voucher', icon: FileText },
+        { id: 'voucher-dnv', label: 'Debit Note', icon: FileText },
+        { id: 'apar-suppliers', label: 'Supplier Register', icon: Users },
+        { id: 'apar-aging', label: 'Accounts Aging Report', icon: Clock },
+        { id: 'apar-compliance', label: 'ERCA Tax Compliance', icon: Percent }
+      ]
+    },
+    {
+      id: 'gl-module',
+      label: 'General Ledger',
+      icon: Scale,
+      items: [
+        { id: 'voucher-jv', label: 'Journal Voucher (JV)', icon: FileCheck },
+        { id: 'voucher-ajv', label: 'Adjustment Journal Voucher (AJV)', icon: Sparkles },
+        { id: 'journal-register', label: 'Journal Transaction Book', icon: BookOpen },
+        { id: 'posting-matrix', label: 'Voucher Posting Matrix', icon: Scale },
+        { id: 'budget-setup', label: 'Budget Setup & Controls', icon: Coins }
       ]
     },
     {
@@ -172,17 +214,27 @@ export default function Sidebar({
       ]
     },
     {
-      id: 'apar-subledger',
-      label: 'AP & AR Subledger',
-      icon: Briefcase,
+      id: 'fixed-assets-module',
+      label: 'Fixed Assets Management',
+      icon: Boxes,
       items: [
-        { id: 'apar-overview', label: 'AP / AR Dashboard', icon: FileText },
-        { id: 'apar-suppliers', label: 'Supplier Registry', icon: Users },
-        { id: 'apar-customers', label: 'Customer Registry', icon: Users },
-        { id: 'apar-aging', label: 'AP & AR Aging Report', icon: Clock },
-        { id: 'apar-gating', label: 'Live Compliance Gating', icon: ShieldCheck },
-        { id: 'apar-controls', label: 'AP / AR Setup Controls', icon: Settings },
-        { id: 'apar-compliance', label: 'ERCA Tax Compliance', icon: Percent }
+        { id: 'fixed-assets-dashboard', label: 'FA Dashboard & Analysis', icon: Activity },
+        { id: 'fixed-assets-registry', label: 'Asset Master List', icon: Database },
+        { id: 'fixed-assets-register', label: 'Register Asset', icon: PlusCircle },
+        { id: 'fixed-assets-capitalization', label: 'Asset Capitalization', icon: Sparkles },
+        { id: 'fixed-assets-cip', label: 'Work in Progress (CIP)', icon: Layers },
+        { id: 'fixed-assets-transfer', label: 'Asset Transfer', icon: ArrowRightLeft },
+        { id: 'fixed-assets-depr', label: 'Depreciation Run', icon: Calculator },
+        { id: 'fixed-assets-reval', label: 'Revaluation (IAS 16)', icon: Scale },
+        { id: 'fixed-assets-impair', label: 'Impairment (IAS 36)', icon: AlertTriangle },
+        { id: 'fixed-assets-components', label: 'Component Accounting', icon: Grid },
+        { id: 'fixed-assets-leases', label: 'IFRS 16 Lease Manager', icon: Settings },
+        { id: 'fixed-assets-maint', label: 'Maintenance Scheduler', icon: Settings },
+        { id: 'fixed-assets-verify', label: 'Physical Verification', icon: ShieldCheck },
+        { id: 'fixed-assets-disposal', label: 'Asset Retirement', icon: Coins },
+        { id: 'fixed-assets-reports', label: 'Ledger Reports Suite', icon: FileText },
+        { id: 'fixed-assets-administration', label: 'Posting rules & Workflows', icon: FolderLock },
+        { id: 'fixed-assets-spec', label: 'Implementation Specs', icon: Terminal, badge: 'D365' }
       ]
     },
     {
@@ -201,6 +253,19 @@ export default function Sidebar({
 
   // Map sub-tabs to their parent groups for default expansion behavior
   const getParentGroupIdOfTab = (tabId: string): string => {
+    if (tabId.startsWith('fixed-assets-')) {
+      return 'fixed-assets-module';
+    }
+    if (tabId.startsWith('note-') || ['financial-statements', 'balance-sheet', 'income-statement', 'cashflows', 'changes-equity', 'ledger-card', 'audit-trail'].includes(tabId)) {
+      return 'financial-reporting';
+    }
+    if (tabId.startsWith('voucher-')) {
+      if (['voucher-cpv', 'voucher-crv', 'voucher-pcv'].includes(tabId)) return 'cash-bank-management';
+      if (['voucher-bpv', 'voucher-brv', 'voucher-btv'].includes(tabId)) return 'bank-management';
+      if (['voucher-ari', 'voucher-arrv', 'voucher-cnv'].includes(tabId)) return 'ar-module';
+      if (['voucher-api', 'voucher-appv', 'voucher-dnv'].includes(tabId)) return 'ap-module';
+      if (['voucher-jv', 'voucher-ajv'].includes(tabId)) return 'gl-module';
+    }
     for (const group of mainMenus) {
       if (group.items.some(item => {
         if (item.id === 'balance-sheet' && tabId === 'financial-statements') return true;
@@ -215,11 +280,15 @@ export default function Sidebar({
   // State to track expanded / collapsed main menus
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     'finance-setup': true,
-    'master-data': true,
-    'transactions': true,
-    'cash-bank-module': true,
-    'financial-reporting': true,
-    'apar-subledger': true
+    'master-data': false,
+    'cash-bank-management': false,
+    'bank-management': false,
+    'ar-module': false,
+    'ap-module': false,
+    'gl-module': false,
+    'financial-reporting': false,
+    'fixed-assets-module': false,
+    'administration': false
   });
 
   // Make sure the active tab's parent group is always expanded when tab shifts externally
@@ -288,7 +357,7 @@ export default function Sidebar({
         <div className="px-5 py-2 border-b border-slate-800/60 bg-slate-950/40 text-[9px] font-mono flex items-center justify-between shrink-0 select-none">
           <div className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-slate-400 font-medium">Secured Node Connection</span>
+            <span className="text-slate-400 font-medium">Secured Cloud Connection</span>
           </div>
           <span className="text-indigo-400 font-extrabold">IFRS-17</span>
         </div>
@@ -404,7 +473,83 @@ export default function Sidebar({
               {/* Collapsed/Expanded Nested Submenu items */}
               {(isGroupExpanded || isCollapsed) && (
                 <div className={`mt-0.5 space-y-0.5 ${!isCollapsed ? 'pl-4 pr-1 border-l border-slate-800/60 ml-3.5' : 'flex flex-col items-center'}`}>
-                  {group.id === 'financial-reporting' ? (
+                  {group.id === 'master-data' ? (
+                    isCollapsed ? (
+                      group.items.map((item) => {
+                        const ItemIcon = item.icon;
+                        const isSelected = activeTab === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => onNavigate(item.id)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer mt-1 ${
+                              isSelected ? 'bg-indigo-650 text-white' : 'text-slate-400 hover:bg-slate-850 hover:text-slate-200'
+                            }`}
+                            title={item.label}
+                          >
+                            <ItemIcon className="w-3.5 h-3.5" />
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="space-y-2 mt-1">
+                        <div className="px-2 py-0.5 text-[8.5px] font-black text-indigo-400 uppercase tracking-widest block bg-indigo-950/20 rounded pl-1.5">
+                          Chart of Accounts
+                        </div>
+                        <div className="space-y-0.5 pl-1.5">
+                          {group.items.slice(0, 3).map((item) => {
+                            const ItemIcon = item.icon;
+                            const isSelected = activeTab === item.id;
+                            return (
+                              <button
+                                key={item.id}
+                                onClick={() => onNavigate(item.id)}
+                                className={`group w-full flex items-center justify-between px-2 py-1 rounded-md transition-all duration-150 text-left cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-indigo-950/70 text-indigo-305 font-bold'
+                                    : 'text-slate-400 hover:bg-slate-800/40 hover:text-white'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <ItemIcon className={`w-3 h-3 shrink-0 ${isSelected ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
+                                  <span className="font-sans text-[11px] tracking-tight truncate">
+                                    {item.label}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <div className="px-2 py-0.5 mt-1.5 text-[8.5px] font-black text-indigo-400 uppercase tracking-widest block bg-indigo-950/20 rounded pl-1.5 border-t border-slate-800/30">
+                          System Master Mappings
+                        </div>
+                        <div className="space-y-0.5 pl-1.5">
+                          {group.items.slice(3).map((item) => {
+                            const ItemIcon = item.icon;
+                            const isSelected = activeTab === item.id;
+                            return (
+                              <button
+                                key={item.id}
+                                onClick={() => onNavigate(item.id)}
+                                className={`group w-full flex items-center justify-between px-2 py-1 rounded-md transition-all duration-150 text-left cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-indigo-950/70 text-indigo-305 font-bold'
+                                    : 'text-slate-405 hover:bg-slate-800/40 hover:text-white'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <ItemIcon className={`w-3 h-3 shrink-0 ${isSelected ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
+                                  <span className="font-sans text-[11px] tracking-tight truncate">
+                                    {item.label}
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )
+                  ) : group.id === 'financial-reporting' ? (
                     isCollapsed ? (
                       <>
                         <button
@@ -431,130 +576,110 @@ export default function Sidebar({
                         </button>
                       </>
                     ) : (
-                      <div className="text-[11px] font-sans text-slate-400 select-none space-y-2 mt-1">
-                        {/* Branch 1: Primary Financial Statements */}
-                        <div className="space-y-1">
-                          <button
-                            onClick={() => setPrimaryStatementsExpanded(!primaryStatementsExpanded)}
-                            className="w-full flex items-center justify-between py-1 px-1 rounded hover:bg-slate-800/20 text-left text-slate-300 hover:text-white transition-colors"
-                          >
-                            <span className="truncate flex items-center gap-1">
-                              <span className="text-slate-600 font-mono">├──</span>
-                              <span className="font-bold">📄 Primary Financial Statements</span>
-                            </span>
-                            <span className="text-[9px] text-slate-500 font-mono shrink-0">
-                              {primaryStatementsExpanded ? '[-]' : '[+]'}
-                            </span>
-                          </button>
-
-                          {primaryStatementsExpanded && (
-                            <div className="pl-4 space-y-0.5 border-l border-slate-800/80 ml-3.5 pt-0.5">
-                              {[
-                                { id: 'financial-statements', label: 'Trial Balance Auditor Spec' },
-                                { id: 'balance-sheet', label: '1. Financial Position (BS)' },
-                                { id: 'income-statement', label: '2. Profit & Loss (P&L)' },
-                                { id: 'cashflows', label: '3. Statement of Cash Flows' },
-                                { id: 'changes-equity', label: '4. Changes in Equity' },
-                                { id: 'ledger-card', label: '6. General Ledger Cards', badge: 'New' },
-                                { id: 'audit-trail', label: 'Continuous Audit Trail' },
-                              ].map((item, index, arr) => {
-                                const isSelected = activeTab === item.id || (item.id === 'balance-sheet' && activeTab === 'financial-statements');
-                                const isLast = index === arr.length - 1;
-                                return (
-                                  <button
-                                    key={item.id}
-                                    onClick={() => onNavigate(item.id)}
-                                    className={`w-full flex items-center justify-between text-left py-1 px-2 rounded-md hover:bg-slate-800/40 transition-colors ${
-                                      isSelected 
-                                        ? 'bg-indigo-950/75 text-indigo-305 font-bold border-l-2 border-indigo-500' 
-                                        : 'text-slate-400 hover:text-slate-200'
-                                    }`}
-                                  >
-                                    <span className="truncate flex items-center gap-1.5">
-                                      <span className="text-slate-700 font-mono">{isLast ? '└──' : '├──'}</span>
-                                      <span className="truncate">{item.label}</span>
-                                    </span>
-                                    {item.badge && (
-                                      <span className="text-[8px] font-extrabold px-1 bg-indigo-950/80 text-indigo-400 rounded shrink-0">
-                                        {item.badge}
-                                      </span>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
+                      <div className="space-y-2 mt-1">
+                        <div className="px-2.5 py-1 text-[8.5px] font-black text-indigo-400 uppercase tracking-widest block">
+                          Primary Statements
+                        </div>
+                        <div className="space-y-0.5">
+                          {[
+                            { id: 'financial-statements', label: 'Trial Balance Auditor Spec', icon: FileBarChart2 },
+                            { id: 'balance-sheet', label: '1. Financial Position (BS)', icon: FileText },
+                            { id: 'income-statement', label: '2. Profit & Loss (P&L)', icon: FileText },
+                            { id: 'cashflows', label: '3. Statement of Cash Flows', icon: FileText },
+                            { id: 'changes-equity', label: '4. Changes in Equity', icon: FileText },
+                            { id: 'ledger-card', label: '6. General Ledger Cards', icon: FileText, badge: 'New' },
+                            { id: 'audit-trail', label: 'Continuous Audit Trail', icon: History },
+                          ].map((item) => {
+                            const isSelected = activeTab === item.id || (item.id === 'balance-sheet' && activeTab === 'financial-statements');
+                            const ItemIcon = item.icon;
+                            return (
+                              <button
+                                key={item.id}
+                                onClick={() => onNavigate(item.id)}
+                                className={`group w-full flex items-center justify-between px-2 py-1 rounded-md transition-all duration-150 text-left cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-indigo-950/70 text-indigo-305 font-bold'
+                                    : 'text-slate-450 hover:bg-slate-800/40 hover:text-white'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <ItemIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
+                                  <span className="font-sans text-[11px] tracking-tight truncate">
+                                    {item.label}
+                                  </span>
+                                </div>
+                                {item.badge && (
+                                  <span className="text-[8px] font-extrabold px-1 bg-indigo-950/80 text-indigo-400 rounded shrink-0">
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
                         </div>
 
-                        {/* Visual spacer line between top level elements */}
-                        <div className="text-slate-750 font-mono text-[9px] -mt-1 ml-0.5 leading-none">│</div>
-
-                        {/* Branch 2: Notes to Financial Statements */}
-                        <div className="space-y-1">
+                        <div className="px-2.5 py-1 pt-2 text-[8.5px] font-black text-indigo-400 uppercase tracking-widest flex items-center justify-between border-t border-slate-800/40 mt-1">
+                          <span>IFRS Disclosure Notes</span>
                           <button
                             onClick={() => setNotesStatementsExpanded(!notesStatementsExpanded)}
-                            className="w-full flex items-center justify-between py-1 px-1 rounded hover:bg-slate-800/20 text-left text-slate-300 hover:text-white transition-colors"
+                            className="text-[9px] text-[#24389c] hover:text-indigo-400 font-mono transition-colors focus:outline-none"
+                            title={notesStatementsExpanded ? "Collapse Notes" : "Expand Notes"}
                           >
-                            <span className="truncate flex items-center gap-1">
-                              <span className="text-slate-600 font-mono">└──</span>
-                              <span className="font-bold font-sans">📂 Notes to Financial Statements</span>
-                            </span>
-                            <span className="text-[9px] text-slate-500 font-mono shrink-0">
-                              {notesStatementsExpanded ? '[-]' : '[+]'}
-                            </span>
+                            {notesStatementsExpanded ? '[-]' : '[+]'}
                           </button>
-
-                          {notesStatementsExpanded && (
-                            <div className="pl-4 space-y-0.5 border-l border-slate-800/80 ml-3.5 pt-0.5 max-h-[300px] overflow-y-auto custom-scrollbar">
-                              {[
-                                { id: 'note-general-info', label: 'General Information' },
-                                { id: 'note-compliance-ifrs', label: 'Statement of Compliance with IFRS' },
-                                { id: 'note-accounting-policies', label: 'Significant Accounting Policies' },
-                                { id: 'note-judgments-estimates', label: 'Critical Judgments and Estimates' },
-                                { id: 'note-pos-notes', label: 'Statement of Financial Position Notes' },
-                                { id: 'note-pl-notes', label: 'Statement of Profit or Loss Notes' },
-                                { id: 'note-cashflow-reco', label: 'Statement of Cash Flow Notes' },
-                                { id: 'note-equity-notes', label: 'Statement of Changes in Equity Notes' },
-                                { id: 'note-risk-management', label: 'Financial Risk Management' },
-                                { id: 'note-capital-mgmt', label: 'Capital Management' },
-                                { id: 'note-related-parties', label: 'Related Party Disclosure' },
-                                { id: 'note-segment-report', label: 'Segment Reporting' },
-                                { id: 'note-contingencies', label: 'Contingencies and Commitments' },
-                                { id: 'note-post-balance-events', label: 'Subsequent Events' },
-                                { id: 'note-going-concern', label: 'Going Concern Disclosure' },
-                                { id: 'note-consolidation-notes', label: 'Consolidation Notes' },
-                                { id: 'note-comparatives-check', label: 'Comparative Information' },
-                                { id: 'note-interactive-builder', label: 'Disclosure Note Builder' },
-                                { id: 'note-workflow-approval', label: 'Note Review & Signing Workflow', badge: 'Admin' },
-                                { id: 'note-publication-book', label: 'Notes Publication Compiler', badge: 'Review' },
-                              ].map((item, index, arr) => {
-                                const isSelected = activeTab === item.id;
-                                const isLast = index === arr.length - 1;
-                                return (
-                                  <button
-                                    key={item.id}
-                                    onClick={() => onNavigate(item.id)}
-                                    className={`w-full flex items-center justify-between text-left py-1 px-1.5 rounded-md hover:bg-slate-800/40 transition-colors ${
-                                      isSelected 
-                                        ? 'bg-indigo-950/75 text-indigo-305 font-bold border-l-2 border-indigo-500' 
-                                        : 'text-slate-400 hover:text-slate-200'
-                                    }`}
-                                  >
-                                    <span className="truncate flex items-center gap-1.5 font-sans">
-                                      <span className="text-slate-700 font-mono">{isLast ? '└──' : '├──'}</span>
-                                      <span className="truncate">{item.label}</span>
-                                    </span>
-                                    {item.badge && (
-                                      <span className="text-[8px] font-extrabold px-1 bg-indigo-950/80 text-indigo-400 rounded shrink-0">
-                                        {item.badge}
-                                      </span>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          )}
                         </div>
+                        {notesStatementsExpanded && (
+                          <div className="space-y-0.5 max-h-[350px] overflow-y-auto custom-scrollbar pr-1 border-l border-slate-800/60 ml-2 pl-2">
+                            {[
+                              { id: 'note-general-info', label: 'General Information', icon: FileText },
+                              { id: 'note-compliance-ifrs', label: 'IFRS Compliance Statement', icon: BookOpen },
+                              { id: 'note-accounting-policies', label: 'Significant Accounting Policies', icon: BookOpen },
+                              { id: 'note-judgments-estimates', label: 'Critical Judgments & Estimates', icon: Layers },
+                              { id: 'note-pos-notes', label: 'Financial Position Details', icon: FileText },
+                              { id: 'note-pl-notes', label: 'Profit or Loss Details', icon: FileText },
+                              { id: 'note-cashflow-reco', label: 'Cash Flow Footnotes', icon: FileText },
+                              { id: 'note-equity-notes', label: 'Changes in Equity Footnotes', icon: FileText },
+                              { id: 'note-risk-management', label: 'Financial Risk Management', icon: ShieldCheck },
+                              { id: 'note-capital-mgmt', label: 'Capital Management', icon: ShieldCheck },
+                              { id: 'note-related-parties', label: 'Related Party Disclosures', icon: Users },
+                              { id: 'note-segment-report', label: 'Segment Reporting Matrix', icon: Activity },
+                              { id: 'note-contingencies', label: 'Contingencies & Commitments', icon: AlertTriangle },
+                              { id: 'note-post-balance-events', label: 'Subsequent Events Note', icon: Calendar },
+                              { id: 'note-going-concern', label: 'Going Concern Disclosures', icon: CheckCircle2 },
+                              { id: 'note-consolidation-notes', label: 'Consolidation Scope Details', icon: Layers },
+                              { id: 'note-comparatives-check', label: 'Comparative Reclassifications', icon: FileText },
+                              { id: 'note-interactive-builder', label: 'Disclosure Note Builder Sandbox', icon: Sparkles },
+                              { id: 'note-workflow-approval', label: 'Note Review & Signing Workflow', icon: FileText, badge: 'Admin' },
+                              { id: 'note-publication-book', label: 'Notes Publication Compiler', icon: FileText, badge: 'Review' },
+                            ].map((item) => {
+                              const isSelected = activeTab === item.id;
+                              const ItemIcon = item.icon;
+                              return (
+                                <button
+                                  key={item.id}
+                                  onClick={() => onNavigate(item.id)}
+                                  className={`group w-full flex items-center justify-between px-2 py-1 rounded-md transition-all duration-150 text-left cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-indigo-950/70 text-indigo-305 font-bold'
+                                      : 'text-slate-450 hover:bg-slate-800/40 hover:text-white'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <ItemIcon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
+                                    <span className="font-sans text-[11px] tracking-tight truncate">
+                                      {item.label}
+                                    </span>
+                                  </div>
+                                  {item.badge && (
+                                    <span className="text-[8px] font-extrabold px-1 bg-indigo-950/80 text-indigo-400 rounded shrink-0">
+                                      {item.badge}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )
                   ) : (

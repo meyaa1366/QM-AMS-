@@ -16,6 +16,7 @@ import DevImplementationGuideTab from './components/DevImplementationGuideTab';
 import BudgetModuleTab from './components/BudgetModuleTab';
 import APARSubmoduleTab from './components/APARSubmoduleTab';
 import CashBankModuleTab from './components/CashBankModuleTab';
+import FixedAssetsTab from './components/FixedAssetsTab';
 import FinancialDisclosureNotesTab from './components/FinancialDisclosureNotesTab';
 import { 
   IFRSClassificationTab, 
@@ -598,9 +599,10 @@ export default function App() {
           )}
 
           {/* TAB: AMS Voucher Workdesk (SAP/NetSuite Grade Framework) */}
-          {activeTab === 'voucher-framework' && (
+          {(activeTab === 'voucher-framework' || activeTab.startsWith('voucher-')) && (
             <VoucherFrameworkTab 
               accounts={accounts} 
+              overrideVoucherType={activeTab.startsWith('voucher-') ? activeTab.replace('voucher-', '').toUpperCase() : undefined}
               onAddAuditLog={(log) => {
                 const mapped = {
                   id: log.id,
@@ -751,6 +753,23 @@ export default function App() {
               activeTab === 'cash-bank-comparison' ? 'comparison' :
               'dashboard'
             } />
+          )}
+
+          {/* TAB 16B: Corporate Fixed Assets Management Module */}
+          {activeTab.startsWith('fixed-assets-') && (
+            <FixedAssetsTab 
+              accounts={accounts}
+              onAddTransaction={handleAddTransaction}
+              onNavigate={(tab) => {
+                setActiveTab(tab);
+                setSearchQuery('');
+              }}
+              onAddAuditLog={(log) => {
+                setAuditLogs(prev => [log, ...prev]);
+                triggerToast(`Asset action logged count: ${log.description}`, 'success');
+              }}
+              initialSubTab={activeTab}
+            />
           )}
 
           {/* TAB 17: IFRS Corporate disclosure notes compiler workspace */}

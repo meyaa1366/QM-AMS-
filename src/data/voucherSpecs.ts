@@ -460,5 +460,25 @@ export const VOUCHER_SPECS: Record<string, VoucherTypeBlueprint> = {
     reversalRules: 'Post offsetting journal balances approved by group accountant desks.',
     postingRules: 'Completed dynamically following month-end intercompany group reconciliations.',
     auditReqs: 'Attach signed cross-corporate inter-entity transfer agreement document.'
+  },
+  PCV: {
+    code: 'PCV',
+    name: 'Petty Cash Voucher',
+    purpose: 'Disbursements from physical imprest petty cash box and local operational settlements.',
+    scenario: 'Paying local office lunch refreshments, purchasing light hardware tools, or courier delivery tips.',
+    requiredFields: ['Custodians Box name', 'Payee Cash Receipt', 'Authorized Supervisor', 'Disbursed Amount'],
+    optionalFields: ['Cost center mapping', 'Project Reference'],
+    validationRules: [
+      'Single disbursements must not exceed 5,000 ETB per event.',
+      'Must be within the monthly imprest replenishment budget ceiling.'
+    ],
+    autoDebit: 'Nominated operational expense Account (Dr 5130 Office Supps / Dr 5140 Travel)',
+    autoCredit: 'Local Cash Safe / Petty Cash account box (Cr 1111 Petty Cash)',
+    workflow: 'Petty cash custodian preparer ➔ Operations Supervisor approve ➔ Immediate Cash Release',
+    approvalRules: 'Approved by physical vault custodian. Vault audit count matches monthly reconciliation logs.',
+    sampleTxn: 'Dr 5130 Office & Stationery Expenses (300 ETB) | Cr 1111 Petty Cash Local Account (300 ETB)',
+    reversalRules: 'Reversed via manual adjustment transaction referencing the original Petty Cash ticket voucher.',
+    postingRules: 'Posted instantly on physical vault dispersal matching standard cashier imprest books.',
+    auditReqs: 'Requires physical retail or cash receipts with supervisor signature matches scanned onto system vault logs.'
   }
 };

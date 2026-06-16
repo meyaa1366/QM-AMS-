@@ -43,6 +43,7 @@ interface VoucherFrameworkTabProps {
   accounts: Account[];
   onAddAuditLog: (log: any) => void;
   onAddTransaction?: (txn: any) => void;
+  overrideVoucherType?: string;
 }
 
 interface VoucherItem {
@@ -156,10 +157,18 @@ const INITIAL_VOUCHERS: VoucherItem[] = [
   }
 ];
 
-export default function VoucherFrameworkTab({ accounts, onAddAuditLog, onAddTransaction }: VoucherFrameworkTabProps) {
+export default function VoucherFrameworkTab({ accounts, onAddAuditLog, onAddTransaction, overrideVoucherType }: VoucherFrameworkTabProps) {
   // Navigation
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'entry' | 'inquiry' | 'rules' | 'reports'>('entry');
   const [vouchersList, setVouchersList] = useState<VoucherItem[]>(INITIAL_VOUCHERS);
+
+  // Sync overrideVoucherType when navigated from left sidebar
+  useEffect(() => {
+    if (overrideVoucherType) {
+      setHdrVoucherType(overrideVoucherType);
+      setFilterVType(overrideVoucherType);
+    }
+  }, [overrideVoucherType]);
   
   // Custom Filters for Inquiry Screen
   const [filterVType, setFilterVType] = useState<string>('All');
@@ -219,6 +228,10 @@ export default function VoucherFrameworkTab({ accounts, onAddAuditLog, onAddTran
     if (hdrVoucherType === 'CPV') {
       setBizAccountDr('5130'); // Office
       setBizCashAccount('1111');
+      setBizTaxCode('VAT-15');
+    } else if (hdrVoucherType === 'PCV') {
+      setBizAccountDr('5130'); // Office & Stationery
+      setBizCashAccount('1111'); // Petty cash local
       setBizTaxCode('VAT-15');
     } else if (hdrVoucherType === 'CRV') {
       setBizAccountCr('4110'); // Revenue

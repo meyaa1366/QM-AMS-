@@ -524,52 +524,11 @@ export default function FinancialDisclosureNotesTab({
         </div>
       </div>
 
-      {/* Main Split Layout */}
-      <div className="flex-1 flex flex-col md:flex-row min-h-[600px] bg-[#090d16]">
+      {/* Main Full Width Layout */}
+      <div className="flex-1 min-h-[600px] bg-[#090d16]">
         
-        {/* Left Sub-Navigation Menu Checklist (Section 2) */}
-        <aside className="w-full md:w-72 bg-[#060a12] border-r border-slate-800 p-4 space-y-3 shrink-0 flex flex-col">
-          <div className="space-y-1">
-            <span className="text-[9px] uppercase font-mono tracking-widest text-[#24389c] block font-black">
-              IFRS Note Chapters
-            </span>
-            <input 
-              type="text"
-              placeholder="Search chapters..."
-              value={menuSearchTerm}
-              onChange={(e) => setMenuSearchTerm(e.target.value)}
-              className="w-full bg-[#0c1222] border border-slate-800 rounded p-1.5 text-xs text-slate-200 placeholder-slate-650"
-            />
-          </div>
-
-          <div className="flex-1 overflow-y-auto max-h-[500px] space-y-1 pr-1 custom-scrollbar">
-            {filteredMasterMenus.map(m => (
-              <button
-                key={m.id}
-                onClick={() => setActiveMenuId(m.id)}
-                className={`w-full flex items-center justify-between px-2 py-2 rounded-lg text-[11px] font-bold text-left transition-colors cursor-pointer ${
-                  activeMenuId === m.id 
-                    ? 'bg-[#24389c]/40 text-slate-100 border-l-4 border-amber-500' 
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
-                }`}
-              >
-                <span className="truncate">{m.label}</span>
-                <ChevronRight className="w-3.5 h-3.5 opacity-50 shrink-0" />
-              </button>
-            ))}
-          </div>
-
-          <div className="bg-[#0b101d] border border-slate-800 rounded p-3 text-[10px] text-slate-400 leading-relaxed">
-            <div className="flex items-center gap-1.5 text-amber-500 font-black mb-1.5">
-              <Info className="w-3.5 h-3.5" />
-              <span>IFRS compliance Checklist</span>
-            </div>
-            To guarantee auditor passage, complete narrative judgements and estimates reconciliations prior to publication.
-          </div>
-        </aside>
-
-        {/* Right Active Panel */}
-        <main className="flex-1 p-5 md:p-6 overflow-y-auto">
+        {/* Active Panel */}
+        <main className="w-full p-5 md:p-6 overflow-y-auto">
           
           {/* Active Title Banner */}
           <div className="border-b border-indigo-950 pb-4 mb-5">

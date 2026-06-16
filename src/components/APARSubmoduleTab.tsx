@@ -570,26 +570,8 @@ export default function APARSubmoduleTab({
 
       {/* COMPACT WORKBOOK SHEET MANAGER TABS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* LEFT NAV PANEL - CATEGORIES */}
-        <div className="lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-4 space-y-2">
-          <h5 className="font-sans font-black text-[11px] tracking-widest uppercase text-slate-400 px-3 mb-2">Workbook Chapters</h5>
-          {CATEGORIES.map(cat => {
-            const isSel = cat.id === activeCategory;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => selectCategory(cat.id)}
-                className={`w-full text-left font-sans text-xs font-bold px-4 py-3 rounded-xl transition flex justify-between items-center ${isSel ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-650 hover:bg-slate-50 hover:text-slate-900'}`}
-              >
-                <span>{cat.label}</span>
-                <ChevronRight className={`w-4.5 h-4.5 transition-transform ${isSel ? 'rotate-90 text-emerald-400' : 'text-slate-400'}`} />
-              </button>
-            );
-          })}
-        </div>
-
         {/* RIGHT SHEET VIEWER */}
-        <div className="lg:col-span-9 space-y-4">
+        <div className="lg:col-span-12 space-y-4">
           {/* SHEET TAB BUTTONS RENDER (Excel Style) */}
           <div className="bg-slate-100 p-1.5 rounded-2xl flex flex-wrap gap-1 border border-slate-200">
             {currentCategory.sheets.map(sheet => {
