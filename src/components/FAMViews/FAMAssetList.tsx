@@ -234,7 +234,7 @@ export default function FAMAssetList({ assets, onSelectAsset, onNavigatePage, on
             Recalculate Run
           </button>
           <button 
-            onClick={() => onNavigatePage('asset-transfer')}
+            onClick={() => onNavigatePage('transfer')}
             className="bg-slate-800 hover:bg-slate-700 text-slate-250 py-1 px-2.5 rounded font-bold cursor-pointer"
           >
             Transfer Center

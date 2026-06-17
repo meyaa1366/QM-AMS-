@@ -22,10 +22,23 @@ interface FAMAdjustmentsProps {
   onAddTransaction: (txn: any) => void;
   onNavigatePage: (page: string) => void;
   onUpdateAssetStatus: (id: string, updates: any) => void;
+  initialAdjustTab?: 'reval' | 'impair' | 'components' | 'maint' | 'verify' | 'disposal';
 }
 
-export default function FAMAdjustments({ assets, onAddTransaction, onNavigatePage, onUpdateAssetStatus }: FAMAdjustmentsProps) {
+export default function FAMAdjustments({ 
+  assets, 
+  onAddTransaction, 
+  onNavigatePage, 
+  onUpdateAssetStatus,
+  initialAdjustTab
+}: FAMAdjustmentsProps) {
   const [activeAdjustTab, setActiveAdjustTab] = useState<'reval' | 'impair' | 'components' | 'maint' | 'verify' | 'disposal'>('reval');
+
+  React.useEffect(() => {
+    if (initialAdjustTab) {
+      setActiveAdjustTab(initialAdjustTab);
+    }
+  }, [initialAdjustTab]);
 
   // 1. REVALUATION STATE
   const [revalAssetId, setRevalAssetId] = useState('FA-2025-090');

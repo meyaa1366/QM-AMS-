@@ -40,6 +40,7 @@ export default function FiscalPeriodTab({ onAddAuditLog }: FiscalPeriodTabProps)
   // Simple state for tabs
   const [activeSubTab, setActiveSubTab] = useState<'years' | 'periods' | 'checklist' | 'reopen' | 'specs'>('years');
   const [selectedFyCode, setSelectedFyCode] = useState<string>('FY2026');
+  const [selectedPeriodCode, setSelectedPeriodCode] = useState<string | null>(null);
 
   // Dynamic state for Toast message
   const [localToasts, setLocalToasts] = useState<{ id: number; text: string; type: 'success' | 'warn' | 'info' }[]>([]);
@@ -268,6 +269,28 @@ export default function FiscalPeriodTab({ onAddAuditLog }: FiscalPeriodTabProps)
 
   // Filter periods related to selected FY
   const filteredPeriods = periods.filter(p => p.fy === selectedFyCode);
+
+  // Derived active period
+  const activePeriod = periods.find(p => p.code === selectedPeriodCode && p.fy === selectedFyCode) || filteredPeriods[0] || null;
+
+  // Set the entire period status (close/open all subledgers)
+  const handleSetPeriodStatus = (periodCode: string, nextState: 'Open' | 'Closed') => {
+    setPeriods(prev => prev.map(p => {
+      if (p.code === periodCode) {
+        return {
+          ...p,
+          gl: nextState,
+          ap: nextState,
+          ar: nextState,
+          tax: nextState,
+          status: nextState
+        };
+      }
+      return p;
+    }));
+    addToast(`Accounting Period ${periodCode} is now fully ${nextState.toUpperCase()}.`, 'success');
+    handleTriggerAudit('PERIOD_STATUS_UPDATE', periodCode, `Set entire period status & subledgers to ${nextState}`);
+  };
 
   return (
     <div className="space-y-6 font-sans">
@@ -565,20 +588,22 @@ export default function FiscalPeriodTab({ onAddAuditLog }: FiscalPeriodTabProps)
 
       {/* 2. ACCOUNTING PERIODS CONTROL */}
       {activeSubTab === 'periods' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div>
               <h3 className="font-bold text-xs uppercase text-slate-900 flex items-center gap-1.5">
                 <Clock className="w-4 h-4 text-blue-600" />
-                <span>Selected Calendar Bounds: {selectedFyCode} sub-intervals</span>
+                <span>Accounting Periods & Subledger Locks — {selectedFyCode}</span>
               </h3>
-              <p className="text-[10px] text-slate-450 mt-0.5">Locks specific transactional subledgers (Accounts Payable/Receivable, GL and Tax entries) for audited periods.</p>
+              <p className="text-[10px] text-slate-450 mt-0.5">
+                Manage posting permissions for General Ledger, Accounts Payable, Accounts Receivable, and Tax. Click a row to configure, or toggle subledgers directly.
+              </p>
             </div>
             
             {filteredPeriods.length === 0 && (
               <button
                 onClick={() => handleAutoGeneratePeriods(selectedFyCode)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
               >
                 <PlusCircle className="w-4 h-4" />
                 <span>Initialize periods for {selectedFyCode}</span>
@@ -587,95 +612,320 @@ export default function FiscalPeriodTab({ onAddAuditLog }: FiscalPeriodTabProps)
           </div>
 
           {filteredPeriods.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-slate-250">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase text-slate-500">
-                    <th className="px-4 py-3 font-sans">Period Code</th>
-                    <th className="px-4 py-3 font-sans">Name Reference</th>
-                    <th className="px-4 py-3 font-sans text-center">Start Date</th>
-                    <th className="px-4 py-3 font-sans text-center">End Date</th>
-                    <th className="px-4 py-3 font-sans text-center bg-blue-50/30">GL Status</th>
-                    <th className="px-4 py-3 font-sans text-center bg-blue-50/30">AP Ledger</th>
-                    <th className="px-4 py-3 font-sans text-center bg-blue-50/30">AR Ledger</th>
-                    <th className="px-4 py-3 font-sans text-center bg-blue-50/30">Tax Book</th>
-                    <th className="px-4 py-3 font-sans text-right">Operational Toggle</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-150 text-xs">
-                  {filteredPeriods.map((p) => (
-                    <tr key={p.code} className="hover:bg-slate-50/50">
-                      <td className="px-4 py-3 font-mono font-black text-blue-600">{p.code}</td>
-                      <td className="px-4 py-3 font-bold text-slate-700">{p.name}</td>
-                      <td className="px-4 py-3 text-center text-slate-550 font-mono">{p.startDate}</td>
-                      <td className="px-4 py-3 text-center text-slate-550 font-mono">{p.endDate}</td>
-                      
-                      {/* GL */}
-                      <td className="px-4 py-3 text-center bg-blue-50/10">
-                        <span className={`px-2 py-0.5 rounded font-mono font-bold text-[9px] ${
-                          p.gl === 'Open' ? 'bg-emerald-50 text-emerald-700 hover:opacity-85' : 'bg-rose-50 text-rose-700'
-                        }`}>
-                          ● {p.gl.toUpperCase()}
-                        </span>
-                      </td>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+              
+              {/* Left Side: Periods Listing table */}
+              <div className="lg:col-span-2 space-y-3">
+                <div className="overflow-hidden bg-white rounded-xl border border-slate-200 shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-[10.5px] font-black uppercase text-slate-500">
+                          <th className="px-4 py-3 font-sans w-12 text-center">Status</th>
+                          <th className="px-4 py-3 font-sans">Period Code</th>
+                          <th className="px-4 py-3 font-sans">Name Reference</th>
+                          <th className="px-3 py-3 font-sans text-center bg-blue-50/5">GL</th>
+                          <th className="px-3 py-3 font-sans text-center bg-blue-50/5">AP</th>
+                          <th className="px-3 py-3 font-sans text-center bg-blue-50/5">AR</th>
+                          <th className="px-3 py-3 font-sans text-center bg-blue-50/5">Tax</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs text-slate-800">
+                        {filteredPeriods.map((p) => {
+                          const isSelected = activePeriod?.code === p.code;
+                          const allClosed = p.gl === 'Closed' && p.ap === 'Closed' && p.ar === 'Closed' && p.tax === 'Closed';
+                          return (
+                            <tr 
+                              key={p.code} 
+                              onClick={() => setSelectedPeriodCode(p.code)}
+                              className={`group cursor-pointer transition-all border-l-4 ${
+                                isSelected 
+                                  ? 'bg-blue-50/50 border-l-blue-600' 
+                                  : 'border-l-transparent hover:bg-slate-50/60'
+                              }`}
+                            >
+                              {/* Master Status Icon Column */}
+                              <td className="px-4 py-3.5 text-center">
+                                {allClosed ? (
+                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-slate-100 text-slate-500 rounded-full border border-slate-200" title="All posting paths locked">
+                                    <Lock className="w-3 h-3" />
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center justify-center w-5 h-5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200" title="Receptive to postings">
+                                    <Unlock className="w-3 h-3 text-emerald-650" />
+                                  </span>
+                                )}
+                              </td>
 
-                      {/* AP */}
-                      <td className="px-4 py-3 text-center bg-blue-50/10">
-                        <span className={`px-2 py-0.5 rounded font-mono font-bold text-[9px] ${
-                          p.ap === 'Open' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                        }`}>
-                          ● {p.ap.toUpperCase()}
-                        </span>
-                      </td>
+                              {/* Code */}
+                              <td className="px-4 py-3.5 font-mono font-bold text-slate-750">
+                                <span className={isSelected ? 'text-blue-700' : 'text-slate-900'}>
+                                  {p.code}
+                                </span>
+                              </td>
 
-                      {/* AR */}
-                      <td className="px-4 py-3 text-center bg-blue-50/10">
-                        <span className={`px-2 py-0.5 rounded font-mono font-bold text-[9px] ${
-                          p.ar === 'Open' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                        }`}>
-                          ● {p.ar.toUpperCase()}
-                        </span>
-                      </td>
+                              {/* Name Reference */}
+                              <td className="px-4 py-3.5">
+                                <div>
+                                  <span className="font-bold text-slate-800">{p.name}</span>
+                                  <span className="block text-[10px] text-slate-450 font-mono mt-0.5">{p.startDate} — {p.endDate}</span>
+                                </div>
+                              </td>
 
-                      {/* TAX */}
-                      <td className="px-4 py-3 text-center bg-blue-50/10">
-                        <span className={`px-2 py-0.5 rounded font-mono font-bold text-[9px] ${
-                          p.tax === 'Open' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
-                        }`}>
-                          ● {p.tax.toUpperCase()}
-                        </span>
-                      </td>
+                              {/* GL badge toggle cell */}
+                              <td 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleGate(p.code, 'gl');
+                                }}
+                                className="px-3 py-3.5 text-center hover:bg-slate-100/50 transition-colors cursor-pointer select-none"
+                                title="Click to quickly toggle GL Posting"
+                              >
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-sans font-bold text-[9.5px] border transition-all active:scale-95 ${
+                                  p.gl === 'Open'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/80'
+                                }`}>
+                                  <span className={`w-1 h-1 rounded-full ${p.gl === 'Open' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                  {p.gl.toUpperCase()}
+                                </span>
+                              </td>
 
-                      {/* Toggle Subledger Locks */}
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-1 select-none">
-                          <button
-                            onClick={() => handleToggleGate(p.code, 'gl')}
-                            className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-650 px-1.5 py-0.5 rounded text-[9px] font-black cursor-pointer uppercase transition-all active:scale-95"
-                            title="Toggle GL Entry Lock"
-                          >
-                            GL Gate
-                          </button>
-                          <button
-                            onClick={() => handleToggleGate(p.code, 'ap')}
-                            className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-650 px-1.5 py-0.5 rounded text-[9px] font-black cursor-pointer uppercase transition-all"
-                            title="Toggle AP Entry Lock"
-                          >
-                            AP
-                          </button>
-                          <button
-                            onClick={() => handleToggleGate(p.code, 'ar')}
-                            className="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-650 px-1.5 py-0.5 rounded text-[9px] font-black cursor-pointer uppercase transition-all"
-                            title="Toggle AR Entry Lock"
-                          >
-                            AR
-                          </button>
+                              {/* AP badge toggle cell */}
+                              <td 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleGate(p.code, 'ap');
+                                }}
+                                className="px-3 py-3.5 text-center hover:bg-slate-100/50 transition-colors cursor-pointer select-none"
+                                title="Click to quickly toggle AP Posting"
+                              >
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-sans font-bold text-[9.5px] border transition-all active:scale-95 ${
+                                  p.ap === 'Open'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/80'
+                                }`}>
+                                  <span className={`w-1 h-1 rounded-full ${p.ap === 'Open' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                  {p.ap.toUpperCase()}
+                                </span>
+                              </td>
+
+                              {/* AR badge toggle cell */}
+                              <td 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleGate(p.code, 'ar');
+                                }}
+                                className="px-3 py-3.5 text-center hover:bg-slate-100/50 transition-colors cursor-pointer select-none"
+                                title="Click to quickly toggle AR Posting"
+                              >
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-sans font-bold text-[9.5px] border transition-all active:scale-95 ${
+                                  p.ar === 'Open'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/80'
+                                }`}>
+                                  <span className={`w-1 h-1 rounded-full ${p.ar === 'Open' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                  {p.ar.toUpperCase()}
+                                </span>
+                              </td>
+
+                              {/* TAX badge toggle cell */}
+                              <td 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleGate(p.code, 'tax');
+                                }}
+                                className="px-3 py-3.5 text-center hover:bg-slate-100/50 transition-colors cursor-pointer select-none"
+                                title="Click to quickly toggle Tax Posting"
+                              >
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-sans font-bold text-[9.5px] border transition-all active:scale-95 ${
+                                  p.tax === 'Open'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/80'
+                                    : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100/80'
+                                }`}>
+                                  <span className={`w-1 h-1 rounded-full ${p.tax === 'Open' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                  {p.tax.toUpperCase()}
+                                </span>
+                              </td>
+
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/60 flex items-center gap-2.5 text-[11px] text-slate-500 font-medium">
+                  <Info className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span>
+                    <strong>Pro-Tip:</strong> Clicking on any of the subledger badges (<strong>GL</strong>, <strong>AP</strong>, <strong>AR</strong>, or <strong>TAX</strong>) in the list instantly locks or unlocks that specific sub-book on the fly!
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Side: Interactive Period Control Board / Details */}
+              <div className="lg:col-span-1">
+                {activePeriod ? (
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+                    <div>
+                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest font-mono block">Active Workspace Position</span>
+                      <h4 className="text-sm font-black text-slate-900 mt-1 flex items-center gap-1.5 leading-tight">
+                        <Calendar className="w-4 h-4 text-indigo-650" />
+                        <span>{activePeriod.name}</span>
+                      </h4>
+                      <p className="text-[10px] text-slate-450 mt-0.5 font-mono">Bound ID: {activePeriod.code}</p>
+                    </div>
+
+                    {/* Master State Card Alert box */}
+                    {activePeriod.gl === 'Closed' && activePeriod.ap === 'Closed' && activePeriod.ar === 'Closed' && activePeriod.tax === 'Closed' ? (
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-center">
+                        <div className="inline-flex items-center justify-center p-2 bg-slate-150 border border-slate-200 rounded-lg text-slate-650 mb-2">
+                          <Lock className="w-5 h-5" />
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        <h5 className="text-[11px] font-extrabold uppercase text-slate-800 tracking-wider">🔒 Month fully closed</h5>
+                        <p className="text-[10px] text-slate-450 mt-1">This period is sealed. Postings to this timeline are strict-locked in the ledger.</p>
+                        
+                        <button
+                          onClick={() => handleSetPeriodStatus(activePeriod.code, 'Open')}
+                          className="w-full mt-3 bg-blue-50 hover:bg-blue-100 text-blue-750 border border-blue-200 text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                        >
+                          <Unlock className="w-4 h-4" />
+                          <span>Unlock & Open Period</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="bg-emerald-50/20 border border-emerald-200 rounded-xl p-3.5 text-center">
+                        <div className="inline-flex items-center justify-center p-2 bg-emerald-50 rounded-lg text-emerald-600 mb-2">
+                          <Unlock className="w-5 h-5 animate-pulse" />
+                        </div>
+                        <h5 className="text-[11px] font-extrabold uppercase text-emerald-800 tracking-wider">🔓 Receptive to entries</h5>
+                        <p className="text-[10px] text-emerald-600/80 mt-1">Ready for voucher postings, journal write requests and standard audits.</p>
+                        
+                        <button
+                          onClick={() => handleSetPeriodStatus(activePeriod.code, 'Closed')}
+                          className="w-full mt-3 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                        >
+                          <Lock className="w-4 h-4" />
+                          <span>Close & Seal Entire Period</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Detail manual toggles list */}
+                    <div className="space-y-2.5">
+                      <span className="text-[10px] uppercase font-black tracking-wider text-slate-450 block">Manual Doors Control</span>
+                      
+                      {/* GL Gate Row */}
+                      <div 
+                        onClick={() => handleToggleGate(activePeriod.code, 'gl')}
+                        className={`p-3 border rounded-xl flex items-center justify-between cursor-pointer transition-all ${
+                          activePeriod.gl === 'Open'
+                            ? 'border-emerald-200 bg-emerald-50/15 hover:bg-emerald-50/30'
+                            : 'border-slate-200 bg-slate-50/55 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="text-left">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            General Journal (GL)
+                          </span>
+                          <span className="block text-[10px] text-slate-400 mt-0.5">Locks primary accounts ledger journals</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded font-mono font-bold text-[9.5px] border ${
+                          activePeriod.gl === 'Open' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}>
+                          {activePeriod.gl.toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* AP Gate Row */}
+                      <div 
+                        onClick={() => handleToggleGate(activePeriod.code, 'ap')}
+                        className={`p-3 border rounded-xl flex items-center justify-between cursor-pointer transition-all ${
+                          activePeriod.ap === 'Open'
+                            ? 'border-emerald-200 bg-emerald-50/15 hover:bg-emerald-50/30'
+                            : 'border-slate-200 bg-slate-50/55 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="text-left">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            Accounts Payable (AP)
+                          </span>
+                          <span className="block text-[10px] text-slate-400 mt-0.5">Locks purchase items and vendor invoices</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded font-mono font-bold text-[9.5px] border ${
+                          activePeriod.ap === 'Open' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}>
+                          {activePeriod.ap.toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* AR Gate Row */}
+                      <div 
+                        onClick={() => handleToggleGate(activePeriod.code, 'ar')}
+                        className={`p-3 border rounded-xl flex items-center justify-between cursor-pointer transition-all ${
+                          activePeriod.ar === 'Open'
+                            ? 'border-emerald-200 bg-emerald-50/15 hover:bg-emerald-50/30'
+                            : 'border-slate-200 bg-slate-50/55 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="text-left">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            Accounts Receivable (AR)
+                          </span>
+                          <span className="block text-[10px] text-slate-400 mt-0.5">Locks sales bills and customer receipts</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded font-mono font-bold text-[9.5px] border ${
+                          activePeriod.ar === 'Open' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}>
+                          {activePeriod.ar.toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* TAX Gate Row */}
+                      <div 
+                        onClick={() => handleToggleGate(activePeriod.code, 'tax')}
+                        className={`p-3 border rounded-xl flex items-center justify-between cursor-pointer transition-all ${
+                          activePeriod.tax === 'Open'
+                            ? 'border-emerald-200 bg-emerald-50/15 hover:bg-emerald-50/30'
+                            : 'border-slate-200 bg-slate-50/55 hover:bg-slate-100'
+                        }`}
+                      >
+                        <div className="text-left">
+                          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            Tax Books & VAT (TAX)
+                          </span>
+                          <span className="block text-[10px] text-slate-400 mt-0.5">Locks tax registers & ERCA reports</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded font-mono font-bold text-[9.5px] border ${
+                          activePeriod.tax === 'Open' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}>
+                          {activePeriod.tax.toUpperCase()}
+                        </span>
+                      </div>
+
+                    </div>
+
+                    {/* Quality compliance guideline notes */}
+                    <div className="border-t border-slate-150 pt-3">
+                      <p className="text-[10px] text-slate-400 leading-normal">
+                        To guarantee high audit preparedness, verify the <strong>Month-End Close Checklist</strong>. Any retroactive correction request after period seal must be authenticated via Tab 4 Token Grace parameters.
+                      </p>
+                      <button
+                        onClick={() => setActiveSubTab('checklist')}
+                        className="text-xs font-bold text-blue-600 hover:text-blue-700 block mt-2 cursor-pointer transition-colors"
+                      >
+                        📋 Open Month-End Checklist &rarr;
+                      </button>
+                    </div>
+
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center text-slate-400">
+                    <p className="text-xs font-bold">Please select an accounting period interval to configure parameters.</p>
+                  </div>
+                )}
+              </div>
+
             </div>
           ) : (
             <div className="bg-slate-50 rounded-xl p-8 text-center border-2 border-dashed border-slate-200">
@@ -683,7 +933,7 @@ export default function FiscalPeriodTab({ onAddAuditLog }: FiscalPeriodTabProps)
               <p className="text-xs text-slate-400 mt-1">Select standard setup or click below to generate compliance intervals according to standards choice.</p>
               <button
                 onClick={() => handleAutoGeneratePeriods(selectedFyCode)}
-                className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs tracking-wide"
+                className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs tracking-wide cursor-pointer transition-colors"
               >
                 Instantly Auto-Generate 15 Periods
               </button>

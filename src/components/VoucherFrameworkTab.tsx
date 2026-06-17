@@ -154,6 +154,45 @@ const INITIAL_VOUCHERS: VoucherItem[] = [
     attachments: [
       { id: 'att-2', name: 'Awash_CreditAdvice_4428.pdf', size: '920 KB', uploadDate: '2026-06-12' }
     ]
+  },
+  {
+    id: 'V-003',
+    voucherNo: 'AV-2023-0025',
+    voucherType: 'BPV',
+    entity: 'XXXX-CO',
+    company: 'XXXX Co., Ltd.',
+    branch: 'Main Headquarters',
+    costCenter: 'CC-ADMIN-HQ',
+    department: 'Administration Department',
+    voucherDate: '2023-06-16',
+    postingDate: '2023-06-16',
+    currency: 'RMB',
+    exchangeRate: 1.0,
+    totalDebit: 2300.00,
+    totalCredit: 2300.00,
+    status: 'Posted',
+    preparedBy: 'mzerihun01@gmail.com',
+    preparedDate: '2023-06-16',
+    approvedBy: 'controller_audit@xxxx.com',
+    referenceNo: 'Note No. 25 (1/1)',
+    notes: 'Pay various fees including office supplies, travel reimbursement, and printer maintenance from Bank of China',
+    payeeOrPayer: 'Various Service Desks',
+    paymentMethod: 'Bank deposits - Bank of China',
+    bankAccount: '1112 (Bank of China Deposits)',
+    lines: [
+      { id: 'l6', lineNo: 1, accountCode: '5131', accountName: 'Administrative Expenses - Office Expenses', description: 'Pay for office supplies', entity: 'XXXX-CO', branch: 'Main Headquarters', costCenter: 'CC-ADMIN-HQ', department: 'Administration Dep.', project: 'PRJ-OFFICE', currency: 'RMB', exchangeRate: 1.0, debit: 1000.00, credit: 0, taxCode: 'Exempt', taxAmount: 0, reference: 'Note-25-A' },
+      { id: 'l7', lineNo: 2, accountCode: '5132', accountName: 'Administrative Expenses - Travel Expenses', description: 'Pay XXX to reimburse travel expenses', entity: 'XXXX-CO', branch: 'Main Headquarters', costCenter: 'CC-PURCHASING', department: 'Purchasing Dep.', project: 'PRJ-TRAVEL', currency: 'RMB', exchangeRate: 1.0, debit: 500.00, credit: 0, taxCode: 'Exempt', taxAmount: 0, reference: 'Note-25-B' },
+      { id: 'l8', lineNo: 3, accountCode: '5141', accountName: 'Management Fee - Maintenance Fee', description: 'Pay for printer repairs', entity: 'XXXX-CO', branch: 'Main Headquarters', costCenter: 'CC-ADMIN-HQ', department: 'Administration Dep.', project: 'PRJ-MAINT', currency: 'RMB', exchangeRate: 1.0, debit: 800.00, credit: 0, taxCode: 'Exempt', taxAmount: 0, reference: 'Note-25-C' },
+      { id: 'l9', lineNo: 4, accountCode: '1112', accountName: 'Bank deposits - Bank of China', description: 'Pay various fees', entity: 'XXXX-CO', branch: 'Main Headquarters', costCenter: 'CC-TREASURY', department: 'Finance Dep.', project: 'PRJ-FIN', currency: 'RMB', exchangeRate: 1.0, debit: 0, credit: 2300.00, taxCode: 'Exempt', taxAmount: 0, reference: 'Note-25-D' }
+    ],
+    actionsHistory: [
+      { timestamp: '10:00 AM', action: 'Created Draft', user: 'mzerihun01@gmail.com', notes: 'Captured physical paper voucher details correctly' },
+      { timestamp: '10:15 AM', action: 'Audited & Balance Verified', user: 'controller_audit@xxxx.com', notes: 'Double entry ledger balances perfectly at 2,300.00 RMB' },
+      { timestamp: '10:30 AM', action: 'Posted to General Ledger', user: 'controller_audit@xxxx.com', notes: 'Ledger books closed for Note No. 25' }
+    ],
+    attachments: [
+      { id: 'att-3', name: 'Accounting_Voucher_Uploaded_Slip.png', size: '240 KB', uploadDate: '2023-06-16' }
+    ]
   }
 ];
 
@@ -1966,19 +2005,70 @@ export default function VoucherFrameworkTab({ accounts, onAddAuditLog, onAddTran
 
               {/* Sign-off matrices */}
               <div className="pt-6 border-t border-slate-200">
-                <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 block mb-6">Continuous Audit Authorization Sign-off Matrix</span>
-                <div className="grid grid-cols-3 gap-6 text-center text-xs font-semibold">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 block font-mono">Continuous Audit Authorization Sign-off Matrix</span>
+                  {selectedVoucherForDetails.currency === 'RMB' && (
+                    <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 font-mono text-[9px] font-black uppercase px-2 py-0.5 rounded">
+                      Matching Physical Voucher Note No. 25
+                    </span>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-3 gap-6 text-center text-xs font-semibold mb-6">
                   <div className="space-y-4">
-                    <p className="border-b border-slate-900 pb-1.5 font-bold italic text-indigo-900">{selectedVoucherForDetails.preparedBy}</p>
-                    <span className="text-[9px] uppercase font-bold text-slate-400">Created / Plotted By</span>
+                    <p className="border-b border-slate-905 pb-1.5 font-bold italic text-indigo-900">{selectedVoucherForDetails.preparedBy}</p>
+                    <span className="text-[9px] uppercase font-black text-slate-400">Created / Plotted By</span>
                   </div>
                   <div className="space-y-4">
-                    <p className="border-b border-slate-900 pb-1.5 text-slate-500 font-mono">Gate Approved (AI Auto Shield)</p>
-                    <span className="text-[9px] uppercase font-bold text-slate-400">Security Audit Clearance</span>
+                    <p className="border-b border-slate-905 pb-1.5 text-slate-500 font-mono text-[10px]">{selectedVoucherForDetails.status === 'Posted' ? 'Verified (AI Security Shield)' : 'Pending Gate Analysis'}</p>
+                    <span className="text-[9px] uppercase font-black text-slate-400">Security Audit Clearance</span>
                   </div>
                   <div className="space-y-4">
-                    <p className="border-b border-slate-900 pb-1.5 font-bold text-emerald-900">{selectedVoucherForDetails.approvedBy || 'Pending Executive Approval'}</p>
-                    <span className="text-[9px] uppercase font-bold text-slate-400">Authorized Signatory (CFO)</span>
+                    <p className="border-b border-slate-905 pb-1.5 font-bold text-emerald-900">{selectedVoucherForDetails.approvedBy || 'Pending Executive Approval'}</p>
+                    <span className="text-[9px] uppercase font-black text-slate-400">Authorized Signatory (CFO)</span>
+                  </div>
+                </div>
+
+                {/* Classic Physical Slip Sign-off cells matching the photo */}
+                <div className="mt-8 pt-6 border-t border-dashed border-slate-250 select-none">
+                  <div className="bg-emerald-50/20 border border-emerald-600/30 rounded-xl p-4">
+                    <span className="text-[10px] uppercase font-black tracking-wider text-emerald-800 block mb-3 font-mono">
+                      Physical Stamp & Handwritings Log (Standard 4-Box Verification)
+                    </span>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                      <div className="bg-white border border-slate-200 p-2.5 rounded shadow-2xs flex flex-col justify-between min-h-[68px]">
+                        <span className="text-[8.5px] uppercase text-slate-400 block font-bold font-mono">Bookkeeping:</span>
+                        <div className="flex items-center justify-between border-t border-slate-100 pt-1 text-[10px]">
+                          <span className="font-mono text-indigo-950 font-bold">mzerihun01</span>
+                          <span className="text-[8.5px] bg-indigo-50 text-indigo-700 px-1 py-0.2 rounded font-mono">Recorded</span>
+                        </div>
+                      </div>
+                      <div className="bg-white border border-slate-200 p-2.5 rounded shadow-2xs flex flex-col justify-between min-h-[68px]">
+                        <span className="text-[8.5px] uppercase text-slate-400 block font-bold font-mono">Audit:</span>
+                        <div className="flex items-center justify-between border-t border-slate-100 pt-1 text-[10px]">
+                          <span className="font-mono text-emerald-950 font-bold">{selectedVoucherForDetails.status === 'Posted' ? 'controller_aud' : 'Pending'}</span>
+                          <span className={`text-[8.5px] px-1 py-0.2 rounded font-mono ${selectedVoucherForDetails.status === 'Posted' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-505'}`}>
+                            {selectedVoucherForDetails.status === 'Posted' ? 'Cleared' : 'Hold'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="bg-white border border-slate-200 p-2.5 rounded shadow-2xs flex flex-col justify-between min-h-[68px]">
+                        <span className="text-[8.5px] uppercase text-slate-400 block font-bold font-mono">Cashier:</span>
+                        <div className="flex items-center justify-between border-t border-slate-100 pt-1 text-[10px]">
+                          <span className="font-mono text-emerald-950 font-bold">{selectedVoucherForDetails.status === 'Posted' ? 'cashier_boc' : 'Pending'}</span>
+                          <span className={`text-[8.5px] px-1 py-0.2 rounded font-mono ${selectedVoucherForDetails.status === 'Posted' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-50 text-slate-505'}`}>
+                            {selectedVoucherForDetails.status === 'Posted' ? 'Paid' : 'Unpaid'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="bg-white border border-slate-200 p-2.5 rounded shadow-2xs flex flex-col justify-between min-h-[68px]">
+                        <span className="text-[8.5px] uppercase text-slate-400 block font-bold font-mono">Order:</span>
+                        <div className="flex items-center justify-between border-t border-slate-100 pt-1 text-[10px]">
+                          <span className="font-mono text-slate-800 font-bold">2023-V25</span>
+                          <span className="text-[8.5px] text-slate-400 font-mono">Cert No.</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

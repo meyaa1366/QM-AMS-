@@ -23,7 +23,7 @@ export interface GeneratedVoucherLine {
 // Fallback account lookups to ensure account validation never crumbles in the UI
 export const DEFAULT_GL_ACCOUNTS: Record<string, string> = {
   '1111': 'Petty Cash Local Account',
-  '1112': 'Bank CBE Account - ETB',
+  '1112': 'Bank deposits - Bank of China / CBE',
   '1113': 'Bank Dashen Account - ETB',
   '1114': 'Bank Awash Account - USD',
   '1120': 'Trade Receivables (A/R)',
@@ -41,7 +41,10 @@ export const DEFAULT_GL_ACCOUNTS: Record<string, string> = {
   '5110': 'Direct Cost of Sales - Raw Materials',
   '5120': 'Depreciation Expense (Equipment)',
   '5130': 'Office & Stationery Expenses',
+  '5131': 'Administrative Expenses - Office Expenses',
+  '5132': 'Administrative Expenses - Travel Expenses',
   '5140': 'Travel & Courier Logistics',
+  '5141': 'Management Fee - Maintenance Fee',
   '5150': 'Rent & Workspace Amortization',
   '5160': 'Loss on Foreign Exchange Conversion'
 };

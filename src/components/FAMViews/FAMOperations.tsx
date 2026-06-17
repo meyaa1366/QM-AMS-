@@ -22,10 +22,23 @@ interface FAMOperationsProps {
   onAddAsset: (newAsset: any) => void;
   onNavigatePage: (page: string) => void;
   onAddTransaction: (txn: any) => void;
+  initialOpsSubTab?: 'capitalization' | 'cip' | 'transfer' | 'leases';
 }
 
-export default function FAMOperations({ assets, onAddAsset, onNavigatePage, onAddTransaction }: FAMOperationsProps) {
+export default function FAMOperations({ 
+  assets, 
+  onAddAsset, 
+  onNavigatePage, 
+  onAddTransaction,
+  initialOpsSubTab
+}: FAMOperationsProps) {
   const [activeOpsSubTab, setActiveOpsSubTab] = useState<'capitalization' | 'cip' | 'transfer' | 'leases'>('capitalization');
+
+  React.useEffect(() => {
+    if (initialOpsSubTab) {
+      setActiveOpsSubTab(initialOpsSubTab);
+    }
+  }, [initialOpsSubTab]);
 
   // Asset Capitalization Form
   const [capSource, setCapSource] = useState<'AP' | 'Inventory' | 'CIP' | 'Project'>('AP');

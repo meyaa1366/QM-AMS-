@@ -1,10 +1,10 @@
-export type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'Cost of Sales' | 'Expense';
+export type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'Cost of Sales' | 'Expense' | 'Statistical' | 'Memorandum / Off-Balance Sheet' | 'Cost';
 
 export type BalanceType = 'Debit' | 'Credit' | 'Debit or Credit' | 'None';
 
-export type AccountStatus = 'Draft' | 'Pending Approval' | 'Active' | 'Inactive' | 'Blocked' | 'Archived';
+export type AccountStatus = 'Draft' | 'Pending Approval' | 'Active' | 'Inactive' | 'Blocked' | 'Archived' | 'Suspended' | 'Closed';
 
-export type ApprovalStatus = 'Not Submitted' | 'Submitted' | 'Approved' | 'Rejected' | 'Returned';
+export type ApprovalStatus = 'Not Submitted' | 'Submitted' | 'Approved' | 'Rejected' | 'Returned' | 'Pending';
 
 export type SLType = 'None' | 'Customer' | 'Supplier' | 'Bank' | 'Cash' | 'Inventory' | 'Fixed Asset' | 'Tax Authority' | 'Employee';
 
@@ -49,6 +49,8 @@ export interface Account {
   status: AccountStatus;
   approvalStatus: ApprovalStatus;
   balance: BalanceType;
+  openingBalanceDebit?: number;
+  openingBalanceCredit?: number;
   createdBy?: string;
   approvedBy?: string;
   auditTrailNotes?: string;

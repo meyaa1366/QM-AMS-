@@ -109,10 +109,7 @@ export default function Sidebar({
       items: [
         { id: 'coa-register', label: 'Chart of Accounts Register', icon: Database },
         { id: 'add-edit-account', label: 'Create / Edit Accounts', icon: PlusCircle },
-        { id: 'import-template', label: 'Bulk XLS/CSV Import', icon: Upload },
-        { id: 'enum-master', label: 'Enum Master Dictionary', icon: Layers },
-        { id: 'lookup-master', label: 'Lookup Masters', icon: Sliders },
-        { id: 'lookup-data', label: 'Lookup Mapping Data', icon: MapPin }
+        { id: 'import-template', label: 'Bulk XLS/CSV Import', icon: Upload }
       ]
     },
     {
@@ -233,8 +230,7 @@ export default function Sidebar({
         { id: 'fixed-assets-verify', label: 'Physical Verification', icon: ShieldCheck },
         { id: 'fixed-assets-disposal', label: 'Asset Retirement', icon: Coins },
         { id: 'fixed-assets-reports', label: 'Ledger Reports Suite', icon: FileText },
-        { id: 'fixed-assets-administration', label: 'Posting rules & Workflows', icon: FolderLock },
-        { id: 'fixed-assets-spec', label: 'Implementation Specs', icon: Terminal, badge: 'D365' }
+        { id: 'fixed-assets-administration', label: 'Posting rules & Workflows', icon: FolderLock }
       ]
     },
     {
@@ -245,14 +241,21 @@ export default function Sidebar({
         { id: 'subledger-setup', label: 'Subsidiary Ledger Rules', icon: Boxes },
         { id: 'business-rules', label: 'ERCA / IFRS Biz Logic', icon: ShieldCheck },
         { id: 'validation-messages', label: 'Validation Errors Log', icon: AlertTriangle, badge: 'Scan' },
-        { id: 'api-endpoints', label: 'System ERP API Specs', icon: Terminal },
-        { id: 'dev-implementation-guide', label: 'Developer Guide', icon: Terminal, badge: 'ABC' }
+        { id: 'enum-master', label: 'Enum Master Dictionary', icon: Layers },
+        { id: 'lookup-master', label: 'Lookup Masters', icon: Sliders },
+        { id: 'lookup-data', label: 'Lookup Mapping Data', icon: MapPin },
+        { id: 'fixed-assets-spec', label: 'FA Implementation Specs', icon: Terminal, badge: 'D365' },
+        { id: 'dev-implementation-guide', label: 'Developer Guide', icon: Terminal, badge: 'ABC' },
+        { id: 'api-endpoints', label: 'System ERP API Specs', icon: Terminal }
       ]
     }
   ];
 
   // Map sub-tabs to their parent groups for default expansion behavior
   const getParentGroupIdOfTab = (tabId: string): string => {
+    if (tabId === 'fixed-assets-spec') {
+      return 'administration';
+    }
     if (tabId.startsWith('fixed-assets-')) {
       return 'fixed-assets-module';
     }
@@ -520,33 +523,37 @@ export default function Sidebar({
                             );
                           })}
                         </div>
-                        <div className="px-2 py-0.5 mt-1.5 text-[8.5px] font-black text-indigo-400 uppercase tracking-widest block bg-indigo-950/20 rounded pl-1.5 border-t border-slate-800/30">
-                          System Master Mappings
-                        </div>
-                        <div className="space-y-0.5 pl-1.5">
-                          {group.items.slice(3).map((item) => {
-                            const ItemIcon = item.icon;
-                            const isSelected = activeTab === item.id;
-                            return (
-                              <button
-                                key={item.id}
-                                onClick={() => onNavigate(item.id)}
-                                className={`group w-full flex items-center justify-between px-2 py-1 rounded-md transition-all duration-150 text-left cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-indigo-950/70 text-indigo-305 font-bold'
-                                    : 'text-slate-405 hover:bg-slate-800/40 hover:text-white'
-                                }`}
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <ItemIcon className={`w-3 h-3 shrink-0 ${isSelected ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
-                                  <span className="font-sans text-[11px] tracking-tight truncate">
-                                    {item.label}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
+                        {group.items.length > 3 && (
+                          <>
+                            <div className="px-2 py-0.5 mt-1.5 text-[8.5px] font-black text-indigo-400 uppercase tracking-widest block bg-indigo-950/20 rounded pl-1.5 border-t border-slate-800/30">
+                              System Master Mappings
+                            </div>
+                            <div className="space-y-0.5 pl-1.5">
+                              {group.items.slice(3).map((item) => {
+                                const ItemIcon = item.icon;
+                                const isSelected = activeTab === item.id;
+                                return (
+                                  <button
+                                    key={item.id}
+                                    onClick={() => onNavigate(item.id)}
+                                    className={`group w-full flex items-center justify-between px-2 py-1 rounded-md transition-all duration-150 text-left cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-indigo-950/70 text-indigo-305 font-bold'
+                                        : 'text-slate-405 hover:bg-slate-800/40 hover:text-white'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <ItemIcon className={`w-3 h-3 shrink-0 ${isSelected ? 'text-indigo-400' : 'text-slate-500 group-hover:text-indigo-400'}`} />
+                                      <span className="font-sans text-[11px] tracking-tight truncate">
+                                        {item.label}
+                                      </span>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
                       </div>
                     )
                   ) : group.id === 'financial-reporting' ? (

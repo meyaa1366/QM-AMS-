@@ -198,6 +198,22 @@ export default function App() {
     triggerToast(`Loaded [${account.code}] configuration to editor.`, "info");
   };
 
+  const handleBulkImport = (imported: Account[]) => {
+    setAccounts(prev => {
+      const merged = [...prev];
+      imported.forEach(newAcc => {
+        const idx = merged.findIndex(a => a.code === newAcc.code);
+        if (idx !== -1) {
+          merged[idx] = { ...merged[idx], ...newAcc };
+        } else {
+          merged.push(newAcc);
+        }
+      });
+      return merged;
+    });
+    triggerToast(`Bulk imported ${imported.length} accounts to general ledger.`, "success");
+  };
+
   // State manipulation for Ledger submissions
   const handleSubmitAccountForReview = (id: string) => {
     const fresh = accounts.map(a => {
@@ -554,6 +570,7 @@ export default function App() {
               onUpdateStatus={handleUpdateStatus}
               onViewAuditTrail={handleJumpToAuditTrail}
               searchQuery={searchQuery}
+              onBulkImport={handleBulkImport}
             />
           )}
 

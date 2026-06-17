@@ -1,47 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  PlusCircle, 
-  Save, 
-  RefreshCw, 
-  FileText, 
-  ShieldAlert, 
-  Workflow, 
-  Coins, 
-  MapPin, 
-  Grid3X3, 
-  CheckSquare,
-  ChevronRight,
-  ChevronLeft,
-  Info,
-  Lock,
-  Unlock,
-  Copy,
-  Plus,
-  Search,
-  FileSpreadsheet,
-  Check,
-  Trash2,
-  Settings,
-  Layers,
+  Database,
+  Building2,
   Sparkles,
-  AlertTriangle,
-  Activity,
-  CornerDownRight
+  Check,
+  FileText,
+  ChevronDown,
+  ChevronRight,
+  Plus,
+  RefreshCw,
+  Layers,
+  Save,
+  Clock,
+  Briefcase,
+  Coins
 } from 'lucide-react';
-import { Account, AccountType, AccountStatus, ApprovalStatus, SLType, DimensionControl, BalanceType } from '../types';
-import BusinessTooltip from './BusinessTooltip';
-import { 
-  COMPANIES, 
-  BRANCHES, 
-  ACCOUNT_TYPES, 
-  GROUPS, 
-  SUBGROUPS, 
-  IFRS_CLASSES, 
-  FINANCIAL_STATEMENT_LINES, 
-  VAT_CODES, 
-  WHT_CODES, 
-  ETHIOPIAN_TAX_CATEGORIES 
-} from '../data';
+import { Account, AccountType, AccountStatus, ApprovalStatus, SLType, BalanceType, DimensionControl } from '../types';
+import { COMPANIES, BRANCHES } from '../data';
 
 interface AddEditAccountTabProps {
   accounts: Account[];
@@ -50,8 +25,161 @@ interface AddEditAccountTabProps {
   onCancel: () => void;
 }
 
-// Security Roles for Enterprise Governance
-type ERPRole = 'Viewer' | 'Accountant' | 'Senior Accountant' | 'Finance Manager' | 'Administrator';
+// 1. Map of Account Types to standard Normal Balances (Auto-selected based on Account Type)
+const TYPE_TO_BALANCE: Record<AccountType, BalanceType> = {
+  'Asset': 'Debit',
+  'Liability': 'Credit',
+  'Equity': 'Credit',
+  'Revenue': 'Credit',
+  'Cost of Sales': 'Debit',
+  'Expense': 'Debit',
+  'Statistical': 'Debit',
+  'Memorandum / Off-Balance Sheet': 'Credit',
+  'Cost': 'Debit'
+};
+
+// 2. Real standard-compliant group categorization list based on each Account Type (Categorize in other way for each account type)
+const ACCOUNT_TYPE_CATEGORIES: Record<AccountType, string[]> = {
+  'Asset': [
+    'Cash & Bank Balances',
+    'Trade Receivables',
+    'Inventory Stocks',
+    'Prepayments & Advances',
+    'Property, Plant & Equipment',
+    'Intangible Assets',
+    'Deferred Tax Assets',
+    'Other Current Assets'
+  ],
+  'Liability': [
+    'Trade Payables',
+    'Short-Term Borrowings',
+    'Tax Authorities Liability',
+    'Accrued Liabilities & Provisions',
+    'Long-Term Debt Obligations',
+    'Deferred Tax Liabilities',
+    'Employee Benefit Obligation'
+  ],
+  'Equity': [
+    'Paid-In Share Capital',
+    'Share Premium Reserves',
+    'Retained Earnings Accumulation',
+    'Legal & Statutory Reserves',
+    'Property Revaluation Reserves'
+  ],
+  'Revenue': [
+    'Operating Service Revenues',
+    'Commercial Sales Revenue',
+    'Financial Interest Income',
+    'Asset Disposal Gain Dividends',
+    'Other Operating Income'
+  ],
+  'Cost of Sales': [
+    'Direct Material Costs',
+    'Direct Labor Salaries',
+    'Production Overheads Allocation',
+    'Subcontractor Procurement',
+    'Import Duties & Port Charges'
+  ],
+  'Expense': [
+    'Employee Work Compensation',
+    'Administrative Overheads Cost',
+    'Depreciation of Fixed Assets',
+    'Amortization of Intangibles',
+    'Finance & Bank Service Charge',
+    'Selling & Distribution cost'
+  ],
+  'Cost': [
+    'Raw Factory Production Overheads',
+    'Research & Development Spend',
+    'Project Phase Fulfillment Cost'
+  ],
+  'Statistical': [
+    'FTE Employee Headcount Measures',
+    'Physical Operational Capacity Keys',
+    'Production Volume Counters'
+  ],
+  'Memorandum / Off-Balance Sheet': [
+    'Guarantee Liabilities Issued',
+    'Letters of Credit Commitments',
+    'Pledged Bank Deposit Securities'
+  ]
+};
+
+// 3. Subgroups categorization list for each Classification Group (Enables a 100% full dropdown list)
+const GROUP_SUB_CATEGORIES: Record<string, string[]> = {
+  'Cash & Bank Balances': ['Vault Cash Floating', 'Operational Cheque Balances', 'Foreign Currency Deposits', 'Petty Cash Accounts'],
+  'Trade Receivables': ['Trade Debtors Active', 'Direct Credit Receivables', 'Inter-Company Receivables', 'Staff Advances Ledger'],
+  'Inventory Stocks': ['Raw Goods Materials', 'Work In Progress Stock', 'Finished Production Inventory', 'Spares & Consumables'],
+  'Prepayments & Advances': ['Prepaid Corporate Rent', 'Prepaid Insurance Premiums', 'Advances Paid to Contractors'],
+  'Property, Plant & Equipment': ['Locomotives Machinery', 'Railway Steel Railing', 'Administrative Buildings', 'Office IT hardware'],
+  'Intangible Assets': ['Enterprise ERP Licences', 'Corporate Trade Patents', 'Aquired Business Goodwill'],
+  'Deferred Tax Assets': ['Deferred Corporate Tax Asset', 'Unutilized Tax Credits'],
+  'Other Current Assets': ['Deposits For Utility Services', 'General Suspense Account'],
+  'Trade Payables': ['Trade Vendors Active', 'Supplier Retention Payables', 'Due to Holding Entities'],
+  'Short-Term Borrowings': ['Commercial Bank Overdraft', 'Bridge Loan Credit Facilities'],
+  'Tax Authorities Liability': ['VAT 15% Payable', 'Withholding Direct Tax Payable', 'Corporate Income Tax Accrual'],
+  'Accrued Liabilities & Provisions': ['Accrued Utility Invoices', 'Provision for Litigations', 'Auditing Fee Accrual'],
+  'Long-Term Debt Obligations': ['Development Finance Loans', 'Corporate Bonds Outstanding'],
+  'Deferred Tax Liabilities': ['Temporary Asset Difference Liability'],
+  'Employee Benefit Obligation': ['Accrued Staff Severance', 'Pension Funds Withholding', 'Provisions for Annual Leave'],
+  'Paid-In Share Capital': ['Ordinary Voting Capital', 'Preferred Non-Voting Capital'],
+  'Share Premium Reserves': ['Capital Premium Realized', 'Additional Paid-In Surplus'],
+  'Retained Earnings Accumulation': ['Prior Year Retained Funds', 'Current Year Retained Margin'],
+  'Legal & Statutory Reserves': ['Committed Statutory Reserves', 'Legal Risk Funding Reserve'],
+  'Property Revaluation Reserves': ['Asset Value Reset Adjustments'],
+  'Operating Service Revenues': ['Locomotive Transport Earnings', 'Cargo Storage Revenue', 'Passenger Ticket Income'],
+  'Commercial Sales Revenue': ['Direct Wholesale Income', 'Ancillary Material Sales'],
+  'Financial Interest Income': ['Deposit Account Credits', 'Inter-Entity Interest Charge'],
+  'Asset Disposal Gain Dividends': ['Gain on Retiring Locomotives', 'Dividends Received'],
+  'Other Operating Income': ['Scrap Metal Sale Contracts', 'Warehouse Rent Income', 'Consultation Ticket Income'],
+  'Direct Material Costs': ['Heavy Locomotive Diesel', 'Lubricants & Engine Oil', 'Spare Parts Installed'],
+  'Direct Labor Salaries': ['Locomotive Operator Wages', 'Station Guard Salaries', 'Maintenance Technicians wages'],
+  'Production Overheads Allocation': ['Machine Power Consumption', 'Factory Storage Utilities', 'Quality Inspection Cost'],
+  'Subcontractor Procurement': ['Third-Party Mechanics', 'External Logistic Operators'],
+  'Import Duties & Port Charges': ['ERCA Customs Customs Duties', 'Port Djibouti Fees', 'Freight Clearing Agency Cost'],
+  'Employee Work Compensation': ['Administrative Staff Salary', 'Management Bonus Benefits', 'Medical Insurance Premiums'],
+  'Administrative Overheads Cost': ['Office Rental Expense', 'Telecom & Internet Invoices', 'Stationery Supplies Spend'],
+  'Depreciation of Fixed Assets': ['Depreciation-Rolling Stock', 'Depreciation-Buildings', 'Depreciation-Equipment'],
+  'Amortization of Intangibles': ['Amortization-Software Licenses', 'Amortization-Patents'],
+  'Finance & Bank Service Charge': ['Bank Guarantee Charges', 'Letter of Credit Opening fee', 'Foreign Exchange Loss'],
+  'Selling & Distribution cost': ['Corporate Marketing Campaign', 'Client Entertainment Accounts'],
+  'Raw Factory Production Overheads': ['Workplace Safety Spend', 'Production Tool Overheads'],
+  'Research & Development Spend': ['Locomotive Upgrade Studies', 'Pilot Track Layout Design'],
+  'Project Phase Fulfillment Cost': ['Adama Hub Civil Works', 'Dire Dawa Extension Planning'],
+  'FTE Employee Headcount Measures': ['Core Operations Full Time staff', 'Temporary Technical Helpers'],
+  'Physical Operational Capacity Keys': ['Locomotive Passenger Seats Count', 'Freight Wagon Load Capacity Tons'],
+  'Production Volume Counters': ['Monthly Trip Miles Covered', 'Total Fuel Litres Burned'],
+  'Guarantee Liabilities Issued': ['Performance Bonds Guaranteed', 'Standard Tender Bid Bonds'],
+  'Letters of Credit Commitments': ['Documentary Credits Opened', 'Import Payment Commitments'],
+  'Pledged Bank Deposit Securities': ['Margin Accounts Restrained', 'Collateral Frozen Deposits']
+};
+
+interface LabelTooltipProps {
+  label: string;
+  tooltipText: string;
+  className?: string;
+}
+
+function LabelTooltip({ label, tooltipText, className = "" }: LabelTooltipProps) {
+  return (
+    <div className={`group relative inline-flex items-center gap-1.5 ${className}`}>
+      <span className="block text-[11px] font-bold text-slate-700 uppercase cursor-help">{label}</span>
+      <div className="inline-flex cursor-help text-slate-400 hover:text-indigo-600 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+        </svg>
+      </div>
+      
+      {/* Tooltip Popup container */}
+      <div className="absolute bottom-full left-0 mb-2.5 hidden group-hover:block z-50 w-64 p-2.5 bg-slate-900 border border-slate-700 text-white text-[11px] font-medium tracking-normal normal-case leading-normal rounded shadow-xl animate-in fade-in slide-in-from-bottom-1 select-none pointer-events-none">
+        <div className="relative">
+          {tooltipText}
+          <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-slate-900 border-r border-b border-slate-700 rotate-45"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AddEditAccountTab({
   accounts,
@@ -59,288 +187,86 @@ export default function AddEditAccountTab({
   onSave,
   onCancel
 }: AddEditAccountTabProps) {
-  // --- SUB-TABS ON THE WIZARD WORKSPACE ---
-  const [wizardMode, setWizardMode] = useState<'single' | 'bulk' | 'import' | 'templates'>('single');
+  // --- FORM STATES ---
+  const [accountType, setAccountType] = useState<AccountType>('Asset');
+  const [ifrsClass, setIfrsClass] = useState<string>('Cash & Bank Balances');
+  const [accountCategory, setAccountCategory] = useState<string>('Vault Cash Floating');
 
-  // --- SECURITY / ROLE-BASED ACTIVE STATE ---
-  const [currentRole, setCurrentRole] = useState<ERPRole>('Finance Manager');
+  const [openingBalanceDebit, setOpeningBalanceDebit] = useState<number>(0);
+  const [openingBalanceCredit, setOpeningBalanceCredit] = useState<number>(0);
 
-  // --- WIZARD FORM STATE ---
-  const [step, setStep] = useState<number>(1);
-  const [company, setCompany] = useState<string>(COMPANIES[0]);
-  const [branch, setBranch] = useState<string>(BRANCHES[0]);
-  const [accountType, setAccountType] = useState<AccountType | ''>('');
-  const [group, setGroup] = useState<string>(''); // Financial Statement Section
-  const [subgroup, setSubgroup] = useState<string>(''); // Account Category
-  const [parentAccount, setParentAccount] = useState<string>('None');
   const [code, setCode] = useState<string>('');
+  const [isAutoCode, setIsAutoCode] = useState<boolean>(false);
   const [name, setName] = useState<string>('');
   const [nameAmharic, setNameAmharic] = useState<string>('');
-  
-  // Posting Controls
-  const [postingAllowed, setPostingAllowed] = useState<boolean>(true);
-  const [isHeaderAccount, setIsHeaderAccount] = useState<boolean>(false);
-  const [controlAccount, setControlAccount] = useState<boolean>(false);
-  const [manualJournalAllowed, setManualJournalAllowed] = useState<boolean>(true);
-  const [systemPostingOnly, setSystemPostingOnly] = useState<boolean>(false);
+  const [description, setDescription] = useState<string>('');
 
-  // Subledger
-  const [slType, setSlType] = useState<SLType>('None');
-
-  // Tax, Compliance & Currency
-  const [vatCode, setVatCode] = useState<string>(VAT_CODES[4]); // N/A
-  const [whtCode, setWhtCode] = useState<string>(WHT_CODES[3]); // N/A
-  const [ethiopianTaxCategory, setEthiopianTaxCategory] = useState<string>(ETHIOPIAN_TAX_CATEGORIES[0]);
-  const [currency, setCurrency] = useState<string>('ETB');
-  const [multiCurrency, setMultiCurrency] = useState<boolean>(false);
-  const [revaluationRequired, setRevaluationRequired] = useState<boolean>(false);
-
-  // Reporting Dimensions Configuration state (configurable by Admin)
-  const [dimensionConfigs, setDimensionConfigs] = useState<Record<string, 'Mandatory' | 'Optional' | 'Not Required'>>({
-    costCenter: 'Optional',
-    project: 'Optional',
-    department: 'Optional',
-    region: 'Optional',
-    profitCenter: 'Optional',
-    businessUnit: 'Optional'
-  });
-
-  // Selected values for dimensions
-  const [selectedCostCenter, setSelectedCostCenter] = useState<string>('CC-DEFAULT');
-  const [selectedProject, setSelectedProject] = useState<string>('PRJ-NA');
-
-  // Collapsible accordion triggers for advanced controls page
-  const [showPostingControls, setShowPostingControls] = useState<boolean>(true);
-  const [showTaxCurrency, setShowTaxCurrency] = useState<boolean>(false);
-  const [showDimensions, setShowDimensions] = useState<boolean>(false);
-
-  // Audit and status
-  const [status, setStatus] = useState<AccountStatus>('Draft');
-  const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>('Not Submitted');
-  const [balance, setBalance] = useState<BalanceType>('Debit');
-  const [auditTrailNotes, setAuditTrailNotes] = useState<string>('');
-  const [ifrsClass, setIfrsClass] = useState<string>(IFRS_CLASSES[0]);
-
-  // Loading States for auto check / step changes
-  const [isValidatingCode, setIsValidatingCode] = useState<boolean>(false);
-  const [warnings, setWarnings] = useState<string[]>([]);
-  const [inlineErrors, setInlineErrors] = useState<Record<string, string>>({});
-
-  // Search filter for parents
+  // Classification & Hierarchy
+  const [parentAccount, setParentAccount] = useState<string>('None');
   const [parentSearch, setParentSearch] = useState<string>('');
+  const [showParentDropdown, setShowParentDropdown] = useState<boolean>(false);
+  const [branchDetail, setBranchDetail] = useState<string>('Addis Ababa Central Branch');
 
-  // Bulk creation state
-  const [bulkRows, setBulkRows] = useState<Array<{ code: string; name: string; type: AccountType; group: string; subgroup: string }>>([
-    { code: '', name: '', type: 'Asset', group: 'Current Assets', subgroup: 'Cash at Hand' }
-  ]);
+  // Control options and mapping
+  const [isControlAccount, setIsControlAccount] = useState<boolean>(false);
+  const [allowDirectPosting, setAllowDirectPosting] = useState<boolean>(true);
+  const [reconciliationRequired, setReconciliationRequired] = useState<boolean>(false);
+  const [subledger, setSubledger] = useState<string>('None');
 
-  // Excel Import state
-  const [importText, setImportText] = useState<string>('');
-  const [importPreview, setImportPreview] = useState<Array<{ code: string; name: string; type: AccountType; error?: string }>>([]);
+  // Taxes, reference & dimensions
+  const [ethiopianTaxTreatment, setEthiopianTaxTreatment] = useState<string>('VAT 15% Standard');
+  const [ifrsRef, setIfrsRef] = useState<string>('IFRS 9 - Financial Instruments Standard');
+  
+  const [dimensionCCRequired, setDimensionCCRequired] = useState<boolean>(true);
+  const [dimensionProjectRequired, setDimensionProjectRequired] = useState<boolean>(false);
+  const [dimensionBURequired, setDimensionBURequired] = useState<boolean>(true);
 
-  // --- DRAFT MECHANISM (Exit & Resume Later) ---
-  const [hasSavedDraft, setHasSavedDraft] = useState<boolean>(false);
+  // Administrative
+  const [status, setStatus] = useState<AccountStatus>('Active');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Load selected account if editing
-  useEffect(() => {
-    if (selectedAccount) {
-      setCompany(selectedAccount.company || COMPANIES[0]);
-      setBranch(selectedAccount.branch || BRANCHES[0]);
-      setAccountType(selectedAccount.accountType);
-      setGroup(selectedAccount.group || '');
-      setSubgroup(selectedAccount.subgroup || '');
-      setParentAccount(selectedAccount.parentAccount || 'None');
-      setCode(selectedAccount.code);
-      setName(selectedAccount.name);
-      setPostingAllowed(selectedAccount.postingAllowed);
-      setIsHeaderAccount(!selectedAccount.postingAllowed);
-      setControlAccount(selectedAccount.controlAccount || false);
-      setManualJournalAllowed(selectedAccount.manualJournalAllowed);
-      setSystemPostingOnly(selectedAccount.systemPostingOnly || false);
-      setSlType(selectedAccount.slType || 'None');
-      setVatCode(selectedAccount.vatCode || VAT_CODES[4]);
-      setWhtCode(selectedAccount.whtCode || WHT_CODES[3]);
-      setEthiopianTaxCategory(selectedAccount.ethiopianTaxCategory || ETHIOPIAN_TAX_CATEGORIES[0]);
-      setStatus(selectedAccount.status || 'Draft');
-      setApprovalStatus(selectedAccount.approvalStatus || 'Not Submitted');
-      setBalance(selectedAccount.balance || 'Debit');
-      setIfrsClass(selectedAccount.ifrsClass || IFRS_CLASSES[0]);
-      setAuditTrailNotes(selectedAccount.auditTrailNotes || '');
-    } else {
-      // Check local storage for exit & resume draft
-      const saved = localStorage.getItem('qm_coa_wizard_draft');
-      if (saved) {
-        setHasSavedDraft(true);
-      }
-    }
-  }, [selectedAccount]);
-
-  const loadSavedDraft = () => {
-    const saved = localStorage.getItem('qm_coa_wizard_draft');
-    if (saved) {
-      try {
-        const d = JSON.parse(saved);
-        setCompany(d.company || COMPANIES[0]);
-        setBranch(d.branch || BRANCHES[0]);
-        setAccountType(d.accountType || '');
-        setGroup(d.group || '');
-        setSubgroup(d.subgroup || '');
-        setParentAccount(d.parentAccount || 'None');
-        setCode(d.code || '');
-        setName(d.name || '');
-        setPostingAllowed(d.postingAllowed !== undefined ? d.postingAllowed : true);
-        setIsHeaderAccount(d.isHeaderAccount || false);
-        setControlAccount(d.controlAccount || false);
-        setSlType(d.slType || 'None');
-        setStatus(d.status || 'Draft');
-        setApprovalStatus(d.approvalStatus || 'Not Submitted');
-        setBalance(d.balance || 'Debit');
-        setHasSavedDraft(false);
-      } catch (e) {
-        console.error(e);
-      }
-    }
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // --- SECURITY ACTIONS & ROLE CHECKS ---
-  const isReadOnly = currentRole === 'Viewer';
-  const canEditCode = currentRole === 'Senior Accountant' || currentRole === 'Finance Manager' || currentRole === 'Administrator';
-  const canDeleteOrDeactivate = currentRole === 'Finance Manager' || currentRole === 'Administrator';
-  const canApprove = currentRole === 'Finance Manager' || currentRole === 'Administrator';
-
-  // --- DYNAMIC SELECTION DEPENDENCIES & PREREQUISITES ---
-  // Steps completion metrics
-  const completionPercentage = useMemo(() => {
-    let score = 0;
-    let total = 8;
-    if (company) score++;
-    if (branch) score++;
-    if (accountType) score++;
-    if (group) score++;
-    if (subgroup) score++;
-    if (parentAccount) score++;
-    if (code) score++;
-    if (name) score++;
-    return Math.floor((score / total) * 100);
-  }, [company, branch, accountType, group, subgroup, parentAccount, code, name]);
-
-  // Determine unlocked sequence level for Step 1
-  const activeInputLevel = useMemo(() => {
-    if (!company) return 0;
-    if (!branch) return 1;
-    if (!accountType) return 2;
-    if (!group) return 3;
-    if (!subgroup) return 4;
-    if (!parentAccount) return 5;
-    if (!code) return 6;
-    if (!name) return 7;
-    return 8;
-  }, [company, branch, accountType, group, subgroup, parentAccount, code, name]);
-
-  // Clear children if account type changes
-  const handleAccountTypeChange = (newType: AccountType) => {
-    setAccountType(newType);
-    setGroup('');
-    setSubgroup('');
-    setParentAccount('None');
-    setCode('');
-    
-    // Automatically default Normal Balance
-    if (newType === 'Asset' || newType === 'Expense' || newType === 'Cost of Sales') {
-      setBalance('Debit');
-    } else {
-      setBalance('Credit');
-    }
-  };
-
-  // Synchronize state from Parent Account when selected
-  const handleParentSelection = (pCode: string) => {
-    setParentAccount(pCode);
-    if (pCode && pCode !== 'None') {
-      const pNode = accounts.find(a => a.code === pCode);
-      if (pNode) {
-        if (pNode.accountType) setAccountType(pNode.accountType);
-        if (pNode.group) setGroup(pNode.group);
-        if (pNode.subgroup) setSubgroup(pNode.subgroup);
-        if (pNode.company) setCompany(pNode.company);
-        if (pNode.branch) setBranch(pNode.branch);
-        if (pNode.balance) setBalance(pNode.balance);
-      }
-    }
-  };
-
-  // Automatically default IFRS Reference based on Section & Category
-  useEffect(() => {
-    if (!accountType) return;
-    if (accountType === 'Asset') {
-      if (subgroup.includes('Cash')) {
-        setIfrsClass('IAS 7 - Statement of Cash Flows');
-      } else if (subgroup.includes('Inventories')) {
-        setIfrsClass('IAS 2 - Inventories');
-      } else if (subgroup.includes('Fixed')) {
-        setIfrsClass('IAS 16 - Property, Plant and Equipment');
-      } else {
-        setIfrsClass('IFRS 9 - Financial Instruments');
-      }
-    } else if (accountType === 'Revenue') {
-      setIfrsClass('IFRS 15 - Revenue from Contracts with Customers');
-    } else if (subgroup.includes('Tax')) {
-      setIfrsClass('IAS 12 - Income Taxes');
-    } else {
-      setIfrsClass('IAS 1 - Presentation of Financial Statements');
-    }
-  }, [accountType, group, subgroup]);
-
-  // Filter groups based on Account Type
-  const availableGroups = useMemo(() => {
-    if (!accountType) return [];
-    return GROUPS[accountType] || [];
+  // 4. Automatically select the normal balance based on Account Type
+  const balance = useMemo<BalanceType>(() => {
+    return TYPE_TO_BALANCE[accountType] || 'Debit';
   }, [accountType]);
 
-  // Filter subgroups based on selected Group Section (Financial Statement Section)
-  const availableSubgroups = useMemo(() => {
-    if (!group) return [];
-    return SUBGROUPS[group] || [];
-  }, [group]);
+  // 5. Dynamic dropdown option data updates
+  const availableGroups = useMemo<string[]>(() => {
+    return ACCOUNT_TYPE_CATEGORIES[accountType] || ['Cash & Bank Balances'];
+  }, [accountType]);
 
-  // Filters parent options (Lists previously registered accounts of the same type, or all if none selected yet, sorted numerically by code)
-  const availableParents = useMemo(() => {
-    const list = !accountType ? accounts : accounts.filter(a => a.accountType === accountType);
-    return [...list].sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true, sensitivity: 'base' }));
-  }, [accounts, accountType]);
+  const availableCategories = useMemo<string[]>(() => {
+    return GROUP_SUB_CATEGORIES[ifrsClass] || ['Vault Cash Floating'];
+  }, [ifrsClass]);
 
-  // Search filtered parents
-  const searchedParents = useMemo(() => {
-    if (!parentSearch) return availableParents;
-    return availableParents.filter(p => p.code.includes(parentSearch) || p.name.toLowerCase().includes(parentSearch.toLowerCase()));
-  }, [availableParents, parentSearch]);
+  // Sync classification dropdowns on type or group changes
+  useEffect(() => {
+    const defaultGroup = availableGroups[0] || 'Cash & Bank Balances';
+    setIfrsClass(defaultGroup);
+  }, [accountType, availableGroups]);
 
-  // Calculate full hierarchy path dynamically
-  const computedHierarchyPath = useMemo(() => {
-    if (!accountType) return 'Unassigned';
-    let path = getAccountTypeLabel(accountType);
-    if (group) path += ` > ${group}`;
-    if (subgroup) path += ` > ${subgroup}`;
-    if (parentAccount && parentAccount !== 'None') {
-      const pAcc = accounts.find(a => a.code === parentAccount);
-      if (pAcc) {
-        path += ` > ${pAcc.name}`;
-      }
-    }
-    if (name) path += ` > ${name}`;
-    return path;
-  }, [accountType, group, subgroup, parentAccount, name, accounts]);
+  useEffect(() => {
+    const defaultCat = availableCategories[0] || 'Vault Cash Floating';
+    setAccountCategory(defaultCat);
+  }, [ifrsClass, availableCategories]);
 
-  // Calculate and suggest next available account code
-  const suggestedNextCode = useMemo(() => {
-    if (!accountType) return '';
+  // Dynamic next account code sequence suggestions
+  const suggestedNextCode = useMemo<string>(() => {
     let prefix = '1';
     if (accountType === 'Asset') prefix = '1';
-    if (accountType === 'Liability') prefix = '2';
-    if (accountType === 'Equity') prefix = '3';
-    if (accountType === 'Revenue') prefix = '4';
-    if (accountType === 'Cost of Sales') prefix = '5';
-    if (accountType === 'Expense') prefix = '6';
+    else if (accountType === 'Liability') prefix = '2';
+    else if (accountType === 'Equity') prefix = '3';
+    else if (accountType === 'Revenue') prefix = '4';
+    else if (accountType === 'Cost of Sales') prefix = '5';
+    else if (accountType === 'Expense') prefix = '6';
+    else if (accountType === 'Statistical') prefix = '7';
+    else if (accountType === 'Memorandum / Off-Balance Sheet') prefix = '8';
+    else if (accountType === 'Cost') prefix = '9';
 
     if (parentAccount && parentAccount !== 'None') {
       prefix = parentAccount;
@@ -353,1588 +279,834 @@ export default function AddEditAccountTab({
 
     if (siblingCodes.length > 0) {
       const maxCode = Math.max(...siblingCodes);
-      return (maxCode + 10).toString();
+      return (maxCode + 1).toString();
     } else {
-      return (parentAccount && parentAccount !== 'None') ? `${parentAccount}10` : `${prefix}100`;
+      return (parentAccount && parentAccount !== 'None') ? `${parentAccount}01` : `${prefix}1000`;
     }
   }, [accountType, parentAccount, accounts]);
 
-  // Automatic Hierarchy Level Calculation
-  const computedLevel = useMemo(() => {
-    if (parentAccount === 'None') return 1;
-    const parentNode = accounts.find(a => a.code === parentAccount);
-    return parentNode ? (parentNode.level || 1) + 1 : 1;
+  useEffect(() => {
+    if (isAutoCode && suggestedNextCode && !selectedAccount) {
+      setCode(suggestedNextCode);
+    }
+  }, [isAutoCode, suggestedNextCode, selectedAccount]);
+
+  // Filter parents to those matching the current type
+  const availableParents = useMemo(() => {
+    return [...accounts]
+      .filter(a => a.accountType === accountType)
+      .sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true }));
+  }, [accounts, accountType]);
+
+  const searchedParents = useMemo(() => {
+    if (!parentSearch) return availableParents;
+    return availableParents.filter(p => 
+      p.code.includes(parentSearch) || 
+      p.name.toLowerCase().includes(parentSearch.toLowerCase())
+    );
+  }, [availableParents, parentSearch]);
+
+  const parentNodeObj = useMemo(() => {
+    return accounts.find(a => a.code === parentAccount);
   }, [parentAccount, accounts]);
 
-  // Circular Reference Checker
-  const checkCircularReference = (parentCode: string): boolean => {
-    if (selectedAccount && parentCode === selectedAccount.code) return true;
-    let currentParentCode = parentCode;
-    while (currentParentCode && currentParentCode !== 'None') {
-      const parentNode = accounts.find(a => a.code === currentParentCode);
-      if (!parentNode) break;
-      if (selectedAccount && parentNode.parentAccount === selectedAccount.code) {
-        return true; // Circular reference detected
-      }
-      currentParentCode = parentNode.parentAccount;
-    }
-    return false;
-  };
+  const computedLevel = useMemo(() => {
+    if (parentAccount === 'None') return 1;
+    return parentNodeObj ? (parentNodeObj.level || 1) + 1 : 1;
+  }, [parentAccount, parentNodeObj]);
 
-  // --- VALIDATION AND SYSTEM AUDIT ---
+  const hierarchyPath = useMemo(() => {
+    if (parentAccount === 'None') {
+      return `Root Master Account ➔ ${code || '?'}_${name || 'GL Account Name'}`;
+    }
+    const path: string[] = [];
+    let currentCode = parentAccount;
+    let limit = 0;
+    while (currentCode && currentCode !== 'None' && limit < 6) {
+      const node = accounts.find(a => a.code === currentCode);
+      if (node) {
+        path.unshift(`${node.code} ${node.name.split(' (')[0]}`);
+        currentCode = node.parentAccount;
+      } else {
+        break;
+      }
+      limit++;
+    }
+    path.push(`${code || '?'}_${name || 'GL Account'}`);
+    return path.join(' ➔ ');
+  }, [parentAccount, code, name, accounts]);
+
+  // Edit load handler
   useEffect(() => {
-    const warns: string[] = [];
-    const errors: Record<string, string> = {};
-
-    if (code) {
-      // Validate uniqueness
-      const isDuplicated = accounts.some(a => a.code === code && (!selectedAccount || a.id !== selectedAccount.id));
-      if (isDuplicated) {
-        errors.code = 'Account code already registered inside ERP system.';
-        warns.push('Code duplication failure.');
+    if (selectedAccount) {
+      setAccountType(selectedAccount.accountType);
+      setIfrsClass(selectedAccount.ifrsClass || selectedAccount.group || 'Cash & Bank Balances');
+      setAccountCategory(selectedAccount.subgroup || 'Vault Cash Floating');
+      setCode(selectedAccount.code);
+      
+      const cleanName = selectedAccount.name || '';
+      const parts = cleanName.match(/(.*?)\s*\((.*?)\)$/);
+      if (parts) {
+        setName(parts[1]);
+        setNameAmharic(parts[2]);
+      } else {
+        setName(cleanName);
+        setNameAmharic('');
       }
-
-      // Range check
-      const firstDigit = code.charAt(0);
-      const expectedDigit = accountType === 'Asset' ? '1' : 
-                            accountType === 'Liability' ? '2' :
-                            accountType === 'Equity' ? '3' :
-                            accountType === 'Revenue' ? '4' :
-                            accountType === 'Cost of Sales' ? '5' : '6';
-      if (accountType && firstDigit !== expectedDigit) {
-        warns.push(`Standard ERP logic error: ${accountType} codes should start with "${expectedDigit}"`);
+      
+      setDescription(selectedAccount.auditTrailNotes || '');
+      setIsControlAccount(selectedAccount.controlAccount || false);
+      setAllowDirectPosting(selectedAccount.postingAllowed);
+      setParentAccount(selectedAccount.parentAccount || 'None');
+      setBranchDetail(selectedAccount.branch || 'Addis Ababa Central Branch');
+      setStatus(selectedAccount.status || 'Active');
+      
+      if (selectedAccount.slType && selectedAccount.slType !== 'None') {
+        setSubledger(selectedAccount.slType);
+      } else {
+        setSubledger('None');
       }
+      
+      setEthiopianTaxTreatment(selectedAccount.ethiopianTaxCategory || 'VAT 15% Standard');
+      setOpeningBalanceDebit(selectedAccount.openingBalanceDebit || 0);
+      setOpeningBalanceCredit(selectedAccount.openingBalanceCredit || 0);
+    } else {
+      handleQuickFill('cash');
+      setOpeningBalanceDebit(0);
+      setOpeningBalanceCredit(0);
     }
+  }, [selectedAccount]);
 
-    // Name uniqueness inside same parent
-    if (name && parentAccount) {
-      const isNameDuplicated = accounts.some(
-        a => a.name.toLowerCase() === name.toLowerCase() && 
-        a.parentAccount === parentAccount && 
-        (!selectedAccount || a.id !== selectedAccount.id)
-      );
-      if (isNameDuplicated) {
-        errors.name = 'This account name already exists inside the same parent account group.';
-        warns.push('Rule BR-COA-09: Prevent duplicated child names.');
-      }
-    }
-
-    // Normal balance incompatibilities
-    if (accountType === 'Revenue' && balance === 'Debit') {
-      warns.push('Incompatible Configuration: Revenues usually maintain Credit Normal Balances.');
-    }
-    if ((accountType === 'Asset' || accountType === 'Expense') && balance === 'Credit') {
-      warns.push('Incompatible Configuration: Assets/Expenses usually maintain Debit Normal Balances.');
-    }
-
-    // Reconciliation controls requiring Subledger Type
-    if (controlAccount && slType === 'None') {
-      warns.push('Subledger Mapping Required: Reconciliation control accounts require mapping details.');
-    }
-
-    // Circularity checks
-    if (parentAccount !== 'None' && checkCircularReference(parentAccount)) {
-      errors.parentAccount = 'Circular hierarchy detected! This parent account loops directly with this account.';
-      warns.push('Circular reference failure.');
-    }
-
-    setWarnings(warns);
-    setInlineErrors(errors);
-  }, [code, name, accountType, balance, parentAccount, controlAccount, slType, company]);
-
-  // Trigger loading state for styling/wizard feel
-  const handleNextStep = () => {
-    // Validate prerequisites before proceeding
-    if (step === 1) {
-      if (!accountType || !code || !name) {
-        alert('All basic mandatory fields (Account Type, Code, and Name) must be specified.');
-        return;
-      }
-      if (Object.keys(inlineErrors).length > 0) {
-        alert('Please resolve any validation errors with the inputs before proceeding.');
-        return;
-      }
-    }
-    if (step === 2) {
-      if (!group || !subgroup || !company || !branch) {
-        alert('Please fill in the financial classification inputs (Statement Section, Group Category, Company, and Branch Segment).');
-        return;
-      }
-    }
-
-    setIsValidatingCode(true);
-    setTimeout(() => {
-      setIsValidatingCode(false);
-      setStep(prev => prev + 1);
-    }, 450);
-  };
-
-  // Safe Exit and Draft Persistence
-  const handleExitAndResumeLater = () => {
-    const draftPayload = {
-      company, branch, accountType, group, subgroup, parentAccount, code, name,
-      postingAllowed, isHeaderAccount, controlAccount, slType, status, approvalStatus, balance
+  // Live validator
+  const validations = useMemo(() => {
+    const isEditing = !!selectedAccount;
+    const isDup = accounts.some(a => a.code === code && (!isEditing || a.code !== selectedAccount?.code));
+    return {
+      codeEmpty: !code,
+      codeFormatWrong: code ? !/^\d{3,10}$/.test(code) : false,
+      codeDuplicate: isDup,
+      nameEmpty: !name.trim(),
+      allValid: !(!code || isDup || !name.trim() || !/^\d{3,10}$/.test(code))
     };
-    localStorage.setItem('qm_coa_wizard_draft', JSON.stringify(draftPayload));
-    triggerNotification('Draft saved to hardware storage. You can safely resume later.', 'success');
-    onCancel();
+  }, [code, name, accounts, selectedAccount]);
+
+  // Handle Preset Prefill Events
+  const handleQuickFill = (preset: 'cash' | 'transport' | 'fuel') => {
+    if (preset === 'cash') {
+      setAccountType('Asset');
+      setIfrsClass('Cash & Bank Balances');
+      setAccountCategory('Vault Cash Floating');
+      setParentAccount('None');
+      setCode('1111');
+      setName('Main Vault Float');
+      setNameAmharic('ጥሬ ገንዘብ በካዝና');
+      setDescription('Unrestricted physical cash vault counts. Managed inside the main offices.');
+      setBranchDetail('Addis Ababa Central Branch');
+      setIsControlAccount(false);
+      setAllowDirectPosting(true);
+      setReconciliationRequired(true);
+      setSubledger('Cash');
+      setEthiopianTaxTreatment('VAT Exempt Services');
+      setIfrsRef('IFRS 9 - Financial Instruments Standard');
+      showToast('Prefilled Cash at Hand standard settings.');
+    } else if (preset === 'transport') {
+      setAccountType('Revenue');
+      setIfrsClass('Operating Service Revenues');
+      setAccountCategory('Locomotive Transport Earnings');
+      setParentAccount('None');
+      setCode('4110');
+      setName('Train Logistics Revenue');
+      setNameAmharic('የባቡር ትራንስፖርት አገልግሎት ገቢ');
+      setDescription('Operating revenues generated from commercial rail operations.');
+      setBranchDetail('Dire Dawa Regional Branch');
+      setIsControlAccount(false);
+      setAllowDirectPosting(true);
+      setReconciliationRequired(false);
+      setSubledger('None');
+      setEthiopianTaxTreatment('VAT 15% Standard');
+      setIfrsRef('IFRS 15 - Revenue from Contracts Standard');
+      showToast('Prefilled Train Service Revenue standard settings.');
+    } else if (preset === 'fuel') {
+      setAccountType('Expense');
+      setIfrsClass('Employee Work Compensation');
+      setAccountCategory('Employee Work Compensation');
+      setParentAccount('None');
+      setCode('6120');
+      setName('Locomotive Fuel Dispatch');
+      setNameAmharic('የባቡር ነዳጅ ወጪ');
+      setDescription('Procurement of heavy heavy-duty locomotive diesel fuels.');
+      setBranchDetail('Addis Ababa Central Branch');
+      setIsControlAccount(false);
+      setAllowDirectPosting(true);
+      setReconciliationRequired(false);
+      setSubledger('None');
+      setEthiopianTaxTreatment('Withholding Tax 2% (Goods)');
+      setIfrsRef('IAS 1 - Presentation of Financial Statements');
+      showToast('Prefilled Locomotive Fuel Expense standard settings.');
+    }
   };
 
-  // Save/Submit Form Action
-  const handleFinalSubmit = (subType: 'Draft' | 'Submit') => {
-    if (!code || !name) {
-      alert('Please specify the account identity.');
-      return;
+  // Build accounting payload & fire callbacks
+  const compilePayload = (): Account | null => {
+    if (validations.codeEmpty) {
+      showToast('Error: Please enter a registry Account Code.');
+      return null;
+    }
+    if (validations.codeFormatWrong) {
+      showToast('Error: Account Code must be between 3 and 10 digits.');
+      return null;
+    }
+    if (validations.codeDuplicate) {
+      showToast('Error: Account Code is already in active use.');
+      return null;
+    }
+    if (validations.nameEmpty) {
+      showToast('Error: English Account Name is required.');
+      return null;
     }
 
-    const itemStatus: AccountStatus = subType === 'Draft' ? 'Draft' : 'Pending Approval';
-    const itemApproval: ApprovalStatus = subType === 'Draft' ? 'Not Submitted' : 'Submitted';
-
-    const cleanAccount: Account = {
+    return {
       id: code,
       code,
-      name,
+      name: nameAmharic ? `${name} (${nameAmharic})` : name,
       parentAccount,
       level: computedLevel,
-      company,
-      branch,
-      accountType: accountType as AccountType,
-      group,
-      subgroup,
+      company: COMPANIES[0],
+      branch: branchDetail,
+      accountType,
+      group: ifrsClass,
+      subgroup: accountCategory,
       ifrsClass,
-      financialStatementLine: subgroup || FINANCIAL_STATEMENT_LINES[0],
-      postingAllowed: !isHeaderAccount,
-      controlAccount,
-      manualJournalAllowed,
-      systemPostingOnly,
-      slType,
-      slMappingCode: slType !== 'None' ? `MAP-${slType.toUpperCase()}-${code}` : undefined,
-      vatCode,
-      whtCode,
-      ethiopianTaxCategory,
-      costCenter: dimensionConfigs.costCenter,
-      department: dimensionConfigs.department,
-      project: dimensionConfigs.project,
-      segment: dimensionConfigs.businessUnit,
-      profitCenter: dimensionConfigs.profitCenter,
-      status: itemStatus,
-      approvalStatus: itemApproval,
+      financialStatementLine: ifrsClass,
+      postingAllowed: allowDirectPosting,
+      controlAccount: isControlAccount,
+      manualJournalAllowed: !isControlAccount,
+      systemPostingOnly: isControlAccount,
+      slType: subledger as SLType,
+      vatCode: ethiopianTaxTreatment.includes('VAT 15%') ? 'VAT-15' : 'VAT-EXEMPT',
+      whtCode: ethiopianTaxTreatment.includes('Withholding') ? 'WHT-2' : 'WHT-N/A',
+      ethiopianTaxCategory: ethiopianTaxTreatment,
+      costCenter: dimensionCCRequired ? 'Mandatory' : 'Optional',
+      department: 'Optional',
+      project: dimensionProjectRequired ? 'Mandatory' : 'Optional',
+      segment: dimensionBURequired ? 'Mandatory' : 'Optional',
+      profitCenter: 'Optional',
+      status: status,
+      approvalStatus: 'Approved', // Save & Close / Save & New bypass draft review flow
       balance,
+      openingBalanceDebit: openingBalanceDebit || 0,
+      openingBalanceCredit: openingBalanceCredit || 0,
       createdBy: 'mzerihun01@gmail.com',
-      auditTrailNotes: auditTrailNotes || 'Registered account via premium wizard.'
+      auditTrailNotes: description || `Pre-configured via standard accounting template.`
     };
-
-    localStorage.removeItem('qm_coa_wizard_draft');
-    onSave(cleanAccount);
   };
 
-  // Templates
-  const applyTemplate = (tpl: string) => {
-    if (tpl === 'bank') {
-      setAccountType('Asset');
-      setGroup('Current Assets');
-      setSubgroup('Bank Balances');
-      setBalance('Debit');
-      setPostingAllowed(true);
-      setIsHeaderAccount(false);
-      setControlAccount(true);
-      setSlType('Bank');
-      setName('Commercial Bank of Ethiopia - Operating');
-    } else if (tpl === 'supplier') {
-      setAccountType('Liability');
-      setGroup('Current Liabilities');
-      setSubgroup('Trade Payables');
-      setBalance('Credit');
-      setPostingAllowed(true);
-      setIsHeaderAccount(false);
-      setControlAccount(true);
-      setSlType('Supplier');
-      setName('Accounts Payable Control Ledger');
-    } else if (tpl === 'revenue') {
-      setAccountType('Revenue');
-      setGroup('Operating Revenue');
-      setSubgroup('Domestic Sales');
-      setBalance('Credit');
-      setPostingAllowed(true);
-      setIsHeaderAccount(false);
-      setControlAccount(false);
-      setSlType('None');
-      setName('Sales Revenue - Regional Division');
-    }
-    triggerNotification(`Applied ${tpl.toUpperCase()} Template`, 'info');
-  };
-
-  // Drag and drop spreadsheet mockup parser
-  const handleSimulateImport = () => {
-    if (!importText) {
-      alert('Please paste some CSV text block into the zone.');
-      return;
-    }
-    const lines = importText.split('\n');
-    const records: typeof importPreview = [];
-    lines.forEach(l => {
-      if (!l.trim()) return;
-      const parts = l.split(',');
-      if (parts.length < 3) return;
-      
-      const parsedCode = parts[0]?.trim();
-      const parsedName = parts[1]?.trim();
-      const parsedType = (parts[2]?.trim() || 'Asset') as AccountType;
-      
-      // Real-time pre-validation checks inside simulated parser
-      let err: string | undefined;
-      if (accounts.some(a => a.code === parsedCode)) {
-        err = 'Duplicate Account Code present inside system.';
-      } else if (!parsedCode || parsedCode.length < 3) {
-        err = 'Invalid format for system code.';
-      }
-
-      records.push({
-        code: parsedCode,
-        name: parsedName,
-        type: parsedType,
-        error: err
-      });
-    });
-    setImportPreview(records);
-    triggerNotification(`Parsed ${records.length} Excel rows, status check finalized.`, 'info');
-  };
-
-  // Perform bulk account injection
-  const handleExecuteImport = () => {
-    const errorCount = importPreview.filter(p => p.error).length;
-    if (errorCount > 0) {
-      alert('Please remove rows that fail ERP validation rules before injecting.');
-      return;
-    }
-    importPreview.forEach(p => {
-      const mock: Account = {
-        id: p.code,
-        code: p.code,
-        name: p.name,
-        parentAccount: 'None',
-        level: 1,
-        company: COMPANIES[0],
-        branch: BRANCHES[0],
-        accountType: p.type,
-        group: GROUPS[p.type]?.[0] || 'Current Assets',
-        subgroup: SUBGROUPS[GROUPS[p.type]?.[0]]?.[0] || 'Cash at Hand',
-        ifrsClass: IFRS_CLASSES[0],
-        financialStatementLine: FINANCIAL_STATEMENT_LINES[0],
-        postingAllowed: true,
-        controlAccount: false,
-        manualJournalAllowed: true,
-        systemPostingOnly: false,
-        slType: 'None',
-        vatCode: VAT_CODES[4],
-        whtCode: WHT_CODES[3],
-        ethiopianTaxCategory: ETHIOPIAN_TAX_CATEGORIES[0],
-        costCenter: 'Optional',
-        department: 'Optional',
-        project: 'Optional',
-        segment: 'Optional',
-        profitCenter: 'Optional',
-        status: 'Active',
-        approvalStatus: 'Approved',
-        balance: (p.type === 'Asset' || p.type === 'Expense') ? 'Debit' : 'Credit',
-        createdBy: 'mzerihun01@gmail.com'
-      };
-      onSave(mock);
-    });
-    setImportPreview([]);
-    setImportText('');
-    setWizardMode('single');
-    triggerNotification('Excel entries imported successfully!', 'success');
-  };
-
-  // Bulk Grid Add Row
-  const handleAddBulkRow = () => {
-    setBulkRows([...bulkRows, { code: '', name: '', type: 'Asset', group: 'Current Assets', subgroup: 'Cash at Hand' }]);
-  };
-
-  const handleBulkFieldUpdate = (idx: number, field: string, val: any) => {
-    const fresh = [...bulkRows];
-    fresh[idx] = { ...fresh[idx], [field]: val };
+  const handleSaveAndNew = () => {
+    const payload = compilePayload();
+    if (!payload) return;
+    onSave(payload);
+    showToast(`Successfully registered account ${payload.code} - ${name}! Preparing fresh form...`);
     
-    // Auto sync Section/Category on Type update
-    if (field === 'type') {
-      const autoGrp = GROUPS[val as AccountType]?.[0] || '';
-      fresh[idx].group = autoGrp;
-      fresh[idx].subgroup = SUBGROUPS[autoGrp]?.[0] || '';
-    } else if (field === 'group') {
-      fresh[idx].subgroup = SUBGROUPS[val]?.[0] || '';
-    }
-    
-    setBulkRows(fresh);
+    // Clear for fresh entry
+    setCode(suggestedNextCode);
+    setName('');
+    setNameAmharic('');
+    setDescription('');
+    setIsControlAccount(false);
+    setAllowDirectPosting(true);
+    setReconciliationRequired(false);
+    setSubledger('None');
+    setOpeningBalanceDebit(0);
+    setOpeningBalanceCredit(0);
   };
 
-  const handleExecuteBulkSave = () => {
-    let invalidCount = 0;
-    bulkRows.forEach(r => {
-      if (!r.code || !r.name) invalidCount++;
-    });
-
-    if (invalidCount > 0) {
-      alert('All rows must have codes and names before bulk generation.');
-      return;
-    }
-
-    bulkRows.forEach(p => {
-      const item: Account = {
-        id: p.code,
-        code: p.code,
-        name: p.name,
-        parentAccount: 'None',
-        level: 1,
-        company: COMPANIES[0],
-        branch: BRANCHES[0],
-        accountType: p.type,
-        group: p.group,
-        subgroup: p.subgroup,
-        ifrsClass: IFRS_CLASSES[0],
-        financialStatementLine: FINANCIAL_STATEMENT_LINES[0],
-        postingAllowed: true,
-        controlAccount: false,
-        manualJournalAllowed: true,
-        systemPostingOnly: false,
-        slType: 'None',
-        vatCode: VAT_CODES[4],
-        whtCode: WHT_CODES[3],
-        ethiopianTaxCategory: ETHIOPIAN_TAX_CATEGORIES[0],
-        costCenter: 'Optional',
-        department: 'Optional',
-        project: 'Optional',
-        segment: 'Optional',
-        profitCenter: 'Optional',
-        status: 'Active',
-        approvalStatus: 'Approved',
-        balance: (p.type === 'Asset' || p.type === 'Expense') ? 'Debit' : 'Credit',
-        createdBy: 'mzerihun01@gmail.com'
-      };
-      onSave(item);
-    });
-
-    setBulkRows([{ code: '', name: '', type: 'Asset', group: 'Current Assets', subgroup: 'Cash at Hand' }]);
-    setWizardMode('single');
-    triggerNotification('Bulk accounts registry processed successfully!', 'success');
-  };
-
-  // Helper notice
-  const triggerNotification = (msg: string, variant: 'success' | 'info' = 'success') => {
-    alert(`ERP Status Center: ${msg}`);
+  const handleSaveAndClose = () => {
+    const payload = compilePayload();
+    if (!payload) return;
+    onSave(payload);
+    showToast(`Successfully registered account ${payload.code}! Closing...`);
+    setTimeout(() => {
+      onCancel();
+    }, 800);
   };
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto pb-12 select-none">
+    <div className="bg-[#f1f5f9] text-slate-800 min-h-screen p-3 md:p-4 font-sans space-y-3.5">
       
-      {/* 1. ERP SECURE REGISTRY BANNER WITH ROLE TOGGLE */}
-      <div className="bg-slate-900 text-white rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm border border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-950/65 border border-indigo-500/30 rounded-xl flex items-center justify-center text-indigo-400 shrink-0">
-            <Lock className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono tracking-widest font-black uppercase text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-900">
-                SECURED ACCESS
-              </span>
-              <span className="text-xs font-mono text-slate-400">v4.12 ERP Release</span>
-            </div>
-            <h3 className="text-sm font-extrabold text-slate-100 font-sans tracking-tight leading-normal">
-              COA Authorization Gating Controls
-            </h3>
-          </div>
-        </div>
-
-        {/* Dynamic Governance Roles Switcher */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-medium font-sans">Active Persona Role:</span>
-          <select
-            value={currentRole}
-            onChange={(e) => setCurrentRole(e.target.value as ERPRole)}
-            className="bg-slate-800 border border-slate-700 rounded-lg text-xs py-1.5 px-3 text-emerald-400 font-extrabold focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
-          >
-            <option value="Viewer">Viewer (Read Only Gated)</option>
-            <option value="Accountant">Accountant (No Code Edit/Approve)</option>
-            <option value="Senior Accountant">Senior Accountant (No Approve/Delete)</option>
-            <option value="Finance Manager">Finance Manager (Executive Controller)</option>
-            <option value="Administrator">Administrator (System Bypass)</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Draft Resume Bar */}
-      {hasSavedDraft && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="text-amber-655 w-4.5 h-4.5 shrink-0" />
-            <span className="text-xs font-bold">You have an incomplete Chart of Accounts layout draft stored in safe memory.</span>
-          </div>
-          <button
-            onClick={loadSavedDraft}
-            className="bg-amber-600 hover:bg-amber-700 text-white rounded px-3 py-1 text-xs font-black"
-          >
-            Retrieve Draft
-          </button>
+      {/* Dynamic Slide Toast Banner */}
+      {toastMessage && (
+        <div className="fixed top-4 right-4 z-50 bg-slate-900 text-white font-medium text-xs py-2.5 px-4 rounded-lg shadow-xl border border-slate-700 flex items-center gap-2">
+          <Check className="w-4 h-4 text-emerald-400" />
+          <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* 2. TABBED WORKSPACE: Single entry, templates, excel, bulk */}
-      <div className="flex border-b border-slate-200 bg-white p-1 rounded-xl shadow-3xs max-w-full overflow-x-auto gap-1">
+      {/* Clean low-profile title header */}
+      <div className="flex justify-between items-center bg-white px-4 py-2.5 border border-slate-200 rounded-lg shadow-sm">
+        <h1 className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+          <Database className="w-4 h-4 text-indigo-600" />
+          {selectedAccount ? `Configure GL Code: ${selectedAccount.code}` : 'Register New Ledger Position'}
+        </h1>
         <button
-          onClick={() => setWizardMode('single')}
-          className={`flex-1 text-center py-2 px-3 rounded-lg text-xs font-black transition-all cursor-pointer truncate ${wizardMode === 'single' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-650 hover:bg-slate-50'}`}
+          onClick={onCancel}
+          className="text-[11px] font-bold text-slate-500 hover:text-slate-800 uppercase tracking-wider border border-slate-200 px-3 py-1 rounded transition cursor-pointer"
         >
-          <div className="flex items-center justify-center gap-1.5">
-            <PlusCircle className="w-4 h-4" />
-            <span>Interactive Wizard Creator</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setWizardMode('templates')}
-          className={`flex-1 text-center py-2 px-3 rounded-lg text-xs font-black transition-all cursor-pointer truncate ${wizardMode === 'templates' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-650 hover:bg-slate-50'}`}
-        >
-          <div className="flex items-center justify-center gap-1.5">
-            <Sparkles className="w-4 h-4" />
-            <span>Enterprise Templates</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setWizardMode('bulk')}
-          className={`flex-1 text-center py-2 px-3 rounded-lg text-xs font-black transition-all cursor-pointer truncate ${wizardMode === 'bulk' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-650 hover:bg-slate-50'}`}
-        >
-          <div className="flex items-center justify-center gap-1.5">
-            <Grid3X3 className="w-4 h-4" />
-            <span>Bulk Rapid Input Grid</span>
-          </div>
-        </button>
-        <button
-          onClick={() => setWizardMode('import')}
-          className={`flex-1 text-center py-2 px-3 rounded-lg text-xs font-black transition-all cursor-pointer truncate ${wizardMode === 'import' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-650 hover:bg-slate-50'}`}
-        >
-          <div className="flex items-center justify-center gap-1.5">
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Import Excel Map</span>
-          </div>
+          Cancel
         </button>
       </div>
 
-      {/* --- RENDER BULK CREATION MODE --- */}
-      {wizardMode === 'bulk' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-              <h4 className="font-extrabold text-sm text-slate-850">COA Rapid Bulk Creation Grid</h4>
-              <p className="text-[10px] text-slate-500">Insert multiple ledger accounts simultaneously. Validates against standard numbering sequences instantly.</p>
-            </div>
-            <button
-              onClick={handleAddBulkRow}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.8 rounded font-black flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Ledger Row
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left font-sans border-collapse text-xs">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
-                  <th className="p-2.5">Account Code</th>
-                  <th className="p-2.5">Account Name</th>
-                  <th className="p-2.5">Account Type</th>
-                  <th className="p-2.5">Statement Section</th>
-                  <th className="p-2.5">Account Category</th>
-                  <th className="p-2.5 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bulkRows.map((row, idx) => (
-                  <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/40">
-                    <td className="p-2">
-                      <input
-                        type="text"
-                        value={row.code}
-                        onChange={(e) => handleBulkFieldUpdate(idx, 'code', e.target.value.replace(/[^0-9]/g, ''))}
-                        className="border border-slate-200 p-1.5 rounded w-28 font-mono text-center font-bold text-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        placeholder="e.g. 1111"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <input
-                        type="text"
-                        value={row.name}
-                        onChange={(e) => handleBulkFieldUpdate(idx, 'name', e.target.value)}
-                        className="border border-slate-200 p-1.5 rounded w-full font-bold text-slate-800"
-                        placeholder="e.g. Petty Cash Adama"
-                      />
-                    </td>
-                    <td className="p-2">
-                      <select
-                        value={row.type}
-                        onChange={(e) => handleBulkFieldUpdate(idx, 'type', e.target.value as AccountType)}
-                        className="border border-slate-200 p-1.5 rounded w-36 bg-white shrink-0"
-                      >
-                        {ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </td>
-                    <td className="p-2">
-                      <select
-                        value={row.group}
-                        onChange={(e) => handleBulkFieldUpdate(idx, 'group', e.target.value)}
-                        className="border border-slate-200 p-1.5 rounded w-36 bg-white shrink-0"
-                      >
-                        {(GROUPS[row.type] || []).map(g => <option key={g} value={g}>{g}</option>)}
-                      </select>
-                    </td>
-                    <td className="p-2">
-                      <select
-                        value={row.subgroup}
-                        onChange={(e) => handleBulkFieldUpdate(idx, 'subgroup', e.target.value)}
-                        className="border border-slate-200 p-1.5 rounded w-36 bg-white shrink-0"
-                      >
-                        {(SUBGROUPS[row.group] || []).map(sg => <option key={sg} value={sg}>{sg}</option>)}
-                      </select>
-                    </td>
-                    <td className="p-2 text-center">
-                      <button
-                        onClick={() => {
-                          if (bulkRows.length === 1) return;
-                          setBulkRows(bulkRows.filter((_, i) => i !== idx));
-                        }}
-                        className="text-red-500 hover:text-red-700 p-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-3">
-            <button
-              onClick={() => setWizardMode('single')}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded font-black text-xs"
-            >
-              Cancel Bulk Entry
-            </button>
-            <button
-              onClick={handleExecuteBulkSave}
-              className="bg-indigo-650 hover:bg-indigo-700 text-white px-5 py-2 rounded font-black text-xs flex items-center gap-1.5"
-            >
-              <Save className="w-4 h-4" />
-              Save Bulk Ledgers
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* --- RENDER TEMPLATE SELECTION MODE --- */}
-      {wizardMode === 'templates' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs space-y-4">
-          <div>
-            <h4 className="font-extrabold text-sm text-slate-850">Pre-Configured GAAP & IFRS Account Templates</h4>
-            <p className="text-[10px] text-slate-500">Pick any standardized corporate template block below. It will automatically populate the field mappings inside the interactive wizard.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="border border-slate-200 hover:border-indigo-500 rounded-xl p-4 cursor-pointer transition flex flex-col justify-between" onClick={() => applyTemplate('bank')}>
-              <div>
-                <span className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">ASSET STANDARD</span>
-                <h5 className="font-extrabold text-xs text-slate-900 mt-2">Bank Equivalents Ledger</h5>
-                <p className="text-[11px] text-slate-500 mt-1">Sets up a reconciliation control account, linking subledger control automatically for bank check matching.</p>
-              </div>
-              <button className="mt-4 bg-slate-900 text-white text-[11px] font-bold py-1.5 rounded hover:bg-indigo-600 transition">Apply This Layout</button>
-            </div>
-
-            <div className="border border-slate-200 hover:border-indigo-500 rounded-xl p-4 cursor-pointer transition flex flex-col justify-between" onClick={() => applyTemplate('supplier')}>
-              <div>
-                <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">LIABILITY CLASS</span>
-                <h5 className="font-extrabold text-xs text-slate-900 mt-2">Trade Payables Ledger (AP)</h5>
-                <p className="text-[11px] text-slate-500 mt-1">Configures a supplier control account that requires Subsidiary Ledger mapping. Direct manual journals are restricted.</p>
-              </div>
-              <button className="mt-4 bg-slate-900 text-white text-[11px] font-bold py-1.5 rounded hover:bg-emerald-600 transition">Apply This Layout</button>
-            </div>
-
-            <div className="border border-slate-200 hover:border-indigo-500 rounded-xl p-4 cursor-pointer transition flex flex-col justify-between" onClick={() => applyTemplate('revenue')}>
-              <div>
-                <span className="text-[10px] font-mono font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">INCOME CLASS</span>
-                <h5 className="font-extrabold text-xs text-slate-900 mt-2">Operating Sales Revenue</h5>
-                <p className="text-[11px] text-slate-500 mt-1">Configures sales ledger, mapping standard tax VAT requirements suited for export or domestic trades.</p>
-              </div>
-              <button className="mt-4 bg-slate-900 text-white text-[11px] font-bold py-1.5 rounded hover:bg-purple-600 transition">Apply This Layout</button>
-            </div>
-          </div>
-
-          <div className="bg-slate-50 p-3 rounded-lg text-[11px] text-slate-500 border border-slate-200 text-center font-medium italic">
-            Applying templates will redirect you into the main wizard view with the properties configured.
-          </div>
-        </div>
-      )}
-
-      {/* --- RENDER EXCEL IMPORT SIMULATOR --- */}
-      {wizardMode === 'import' && (
-        <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <FileSpreadsheet className="text-[#0051d5] w-5 h-5 shrink-0" />
-            <div>
-              <h4 className="font-extrabold text-sm text-slate-850">COA Excel / CSV Text Parser</h4>
-              <p className="text-[10px] text-slate-500">Provide comma-separated values of the desired accounts below. Format: Code, Name, Account Type</p>
-            </div>
-          </div>
-
-          <textarea
-            value={importText}
-            onChange={(e) => setImportText(e.target.value)}
-            className="w-full font-mono text-xs p-3 border border-slate-250 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
-            placeholder="1115, Cash on Hand Regional Office-A, Asset&#10;2112, Vendor Supplier Pool-B, Liability&#10;5115, Direct Subcontracting Cost, Cost of Sales"
-            rows={5}
-          />
-
-          <div className="flex justify-between items-center py-2">
-            <span className="text-[10px] text-slate-450 italic">Paste text directly into block, click validate.</span>
-            <button
-              onClick={handleSimulateImport}
-              className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded text-xs font-black"
-            >
-              Parse & Validate Setup List
-            </button>
-          </div>
-
-          {importPreview.length > 0 && (
-            <div className="pt-2 space-y-2">
-              <h5 className="font-extrabold text-xs text-slate-800">Parsed Records Pending Import Approval ({importPreview.length})</h5>
-              <div className="border border-slate-200 rounded-lg max-h-56 overflow-y-auto">
-                <table className="w-full text-xs text-left border-collapse">
-                  <thead className="bg-slate-100 uppercase text-[9px] font-black text-slate-500">
-                    <tr className="border-b border-slate-200">
-                      <th className="p-2">Code</th>
-                      <th className="p-2">Proposed Name</th>
-                      <th className="p-2">Type</th>
-                      <th className="p-2 text-right">Pre-Validation Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {importPreview.map((item, index) => (
-                      <tr key={index} className="border-b border-slate-100 text-slate-705">
-                        <td className="p-2 font-mono font-bold text-blue-600">{item.code}</td>
-                        <td className="p-2">{item.name}</td>
-                        <td className="p-2 font-semibold text-slate-500">{item.type}</td>
-                        <td className="p-2 text-right font-bold text-xs">
-                          {item.error ? (
-                            <span className="text-red-500">⚠️ {item.error}</span>
-                          ) : (
-                            <span className="text-emerald-500">✓ Ready to load</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  onClick={() => setImportPreview([])}
-                  className="bg-slate-100 text-slate-705 px-3 py-1.5 rounded text-xs font-semibold"
-                >
-                  Clear Parsed Entries
-                </button>
-                <button
-                  onClick={handleExecuteImport}
-                  className="bg-[#0051d5] text-white px-4 py-1.5 rounded text-xs font-black"
-                >
-                  Commit Validated Accounts
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* --- RENDER SINGLE ACCOUNT INTERACTIVE WIZARD MODE --- */}
-      {wizardMode === 'single' && (
-        <form className="space-y-4">
+      {/* Split Compact Layout to prevent unneeded screen consumption */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        
+        {/* main Form Content column */}
+        <div className="lg:col-span-2 space-y-3">
           
-          {/* Header block with Completion Metrics */}
-          <div className="bg-white border border-slate-200 p-4 md:p-5 rounded-xl shadow-3xs flex flex-col md:flex-row md:items-center justify-between gap-4 select-none">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-[#0051d5] shrink-0 border border-blue-100">
-                <Grid3X3 className="w-5.5 h-5.5" />
-              </div>
-              <div>
-                <h3 className="font-sans font-extrabold text-[#111827] text-sm leading-none flex items-center gap-1.5 matches-title">
-                  <span>{selectedAccount ? "Modify Ledger Account" : "Standard IFRS Account Setup Wizard"}</span>
-                  <BusinessTooltip text="Central utility to define, edit, and configure Chart of Accounts elements. Assigns account categories, IFRS balance sheet lines, tax categories, and active subledger settings." />
-                </h3>
-                <p className="text-[10px] text-slate-550 mt-1 font-medium font-sans">
-                  Dynamic field generation ensures valid, un-orphaned hierarchies aligned with ERP conventions and accounting criteria.
-                </p>
-              </div>
-            </div>
+          <div className="bg-white border border-slate-200 rounded-lg p-3 md:p-4 shadow-sm space-y-3.5">
+            
+            <h3 className="text-xs font-bold text-slate-900 uppercase border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+              <Database className="w-4 h-4 text-slate-450" />
+              Primary Core Parameters
+            </h3>
 
-            {/* Completion Percentage Panel */}
-            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-2.5 rounded-xl">
-              <div>
-                <div className="flex justify-between text-[10px] font-extrabold text-slate-500 mb-1">
-                  <span>Wizard Form Completion</span>
-                  <span>{completionPercentage}%</span>
-                </div>
-                <div className="w-32 bg-slate-200 h-1.8 rounded-full overflow-hidden">
-                  <div className="bg-indigo-600 h-full transition-all" style={{ width: `${completionPercentage}%` }}></div>
-                </div>
-              </div>
-              <div className="border-l border-slate-200 pl-3">
-                <button
-                  type="button"
-                  onClick={handleExitAndResumeLater}
-                  className="bg-transparent text-slate-650 hover:text-slate-900 border border-slate-300 hover:border-slate-400 px-3 py-1 text-[10px] font-black rounded-lg"
-                >
-                  Exit & Resume
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Compliance warnings block */}
-          {warnings.length > 0 && (
-            <div className="border border-amber-200 bg-amber-50/40 rounded-xl p-3 flex gap-2 text-amber-850 shadow-3xs">
-              <ShieldAlert className="w-4.5 h-4.5 shrink-0 text-amber-600 mt-0.5" />
-              <div className="text-[11px] font-medium space-y-1">
-                <p className="font-bold underline">ERP Real-Time Validation Warnings ({warnings.length}):</p>
-                <ul className="list-disc pl-3.5 space-y-0.5 text-[10px]">
-                  {warnings.map((w, idx) => <li key={idx}>{w}</li>)}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {/* Multi-Step Horizontal Indicators */}
-          <div className="bg-slate-950 text-white rounded-xl p-2.5 flex items-center justify-between shadow-xs select-none">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 w-full text-center">
-              {[
-                { s: 1, name: '1. Basic Information' },
-                { s: 2, name: '2. Classification' },
-                { s: 3, name: '3. Advanced Controls' }
-              ].map((item) => {
-                const isActive = step === item.s;
-                const isCompleted = step > item.s;
-                return (
-                  <button
-                    key={item.s}
-                    type="button"
-                    onClick={() => {
-                      if (item.s > 1 && (!code || !name || !accountType)) {
-                        alert('Basic account identity inputs (Account Type, Code, and Name) must be specified first.');
-                        return;
-                      }
-                      if (item.s > 2 && (!group || !subgroup)) {
-                        alert('Financial statements mapping classification (Section & Category) must be selected.');
-                        return;
-                      }
-                      setStep(item.s);
-                    }}
-                    className={`py-2 px-1.5 rounded-lg transition-all text-[11px] font-black cursor-pointer flex items-center justify-center gap-1.5 ${
-                      isActive 
-                        ? 'bg-indigo-650 text-white border border-indigo-500' 
-                        : isCompleted 
-                          ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/40' 
-                          : 'bg-transparent text-slate-400 hover:bg-slate-800'
-                    }`}
-                  >
-                    <span>{item.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* --- STEP 1: BASIC INFORMATION --- */}
-          {step === 1 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               
-              {/* Form Input fields */}
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs space-y-4 md:col-span-2">
-                <h4 className="font-sans font-black text-xs uppercase tracking-widest text-slate-800 pb-2 border-b border-slate-100 flex items-center justify-between">
-                  <span>IDENTITY MATRIX FOR GAAP / IFRS COMPLIANCE</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Gating Stage 1</span>
-                </h4>
+              {/* Account type selector - No brackets */}
+              <div>
+                <LabelTooltip label="Account Type" tooltipText="The physical asset, liability, equity, or operational revenue/expense class. Controls normal balance behavior & default groupings." className="mb-1" />
+                <select
+                  value={accountType}
+                  onChange={(e) => setAccountType(e.target.value as AccountType)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-slate-400"
+                >
+                  <option value="Asset">Asset</option>
+                  <option value="Liability">Liability</option>
+                  <option value="Equity">Equity</option>
+                  <option value="Revenue">Revenue</option>
+                  <option value="Cost of Sales">Cost of Sales</option>
+                  <option value="Expense">Expense</option>
+                  <option value="Cost">Cost</option>
+                  <option value="Statistical">Statistical</option>
+                  <option value="Memorandum / Off-Balance Sheet">Memorandum / Off-Balance Sheet</option>
+                </select>
+              </div>
 
-                <div className="space-y-4 text-xs">
-                  
-                  {/* Sequence 1: Parent Account (Circular prevent checks active) */}
-                  <div className="bg-slate-50/60 p-4 rounded-xl border border-slate-200/50 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <label className="block font-bold text-slate-850 font-sans flex items-center gap-1.5">
-                        <span className="text-indigo-600 font-extrabold mr-1">1.</span>
-                        <span>Parent Account Header *</span>
-                      </label>
-                      <span className="text-[10px] text-indigo-600 font-extrabold bg-indigo-50/80 px-2 py-0.5 rounded-md border border-indigo-100">
-                        Auto-fills Type, Balance, Section & Category
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      <select
-                        value={parentAccount}
-                        onChange={(e) => handleParentSelection(e.target.value)}
-                        className="w-full border border-slate-250 rounded-lg p-2.5 bg-white text-slate-855 font-bold focus:ring-1 focus:ring-blue-500 focus:outline-none cursor-pointer"
-                      >
-                        <option value="None">None - Top Level Header</option>
-                        {availableParents.map(po => {
-                          const isCircularRef = checkCircularReference(po.code);
-                          return (
-                            <option
-                              key={po.code}
-                              value={po.code}
-                              disabled={isCircularRef}
-                            >
-                              [{po.code}] {po.name} ({po.accountType} - {po.group}) {isCircularRef ? ' [Circular Warning]' : ''}
-                            </option>
-                          );
-                        })}
-                      </select>
-
-                      <div className="relative">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                          type="text"
-                          value={parentSearch}
-                          onChange={(e) => setParentSearch(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 border border-slate-200 bg-white rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                          placeholder="Quick search & select parent dynamically..."
-                        />
-                      </div>
-
-                      {(parentSearch || parentAccount !== 'None') && (
-                        <div className="border border-slate-200 rounded-lg max-h-36 overflow-y-auto p-1.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5 bg-white">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleParentSelection('None');
-                              setParentSearch('');
-                            }}
-                            className={`p-2 rounded text-left border flex items-center justify-between text-xs ${parentAccount === 'None' ? 'bg-indigo-50 border-indigo-300 font-extrabold text-indigo-900' : 'bg-white border-slate-150 hover:bg-slate-50'}`}
-                          >
-                            <span>None - Top Level Header</span>
-                            {parentAccount === 'None' && <Check className="w-3.5 h-3.5" />}
-                          </button>
-                          {searchedParents.map(po => {
-                            const isCircularRef = checkCircularReference(po.code);
-                            const isSel = parentAccount === po.code;
-                            return (
-                              <button
-                                key={po.code}
-                                type="button"
-                                disabled={isCircularRef}
-                                onClick={() => {
-                                  handleParentSelection(po.code);
-                                  setParentSearch('');
-                                }}
-                                className={`p-2 rounded text-left border flex items-center justify-between text-xs font-sans truncate ${isCircularRef ? 'opacity-30 cursor-not-allowed bg-slate-100' : isSel ? 'bg-indigo-50 border-indigo-300 font-extrabold text-indigo-900' : 'bg-white border-slate-150 hover:bg-slate-50'}`}
-                              >
-                                <span className="truncate">[{po.code}] {po.name}</span>
-                                {isSel && <Check className="w-3.5 h-3.5" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    {inlineErrors.parentAccount && (
-                      <p className="text-red-550 font-bold text-[10px] mt-1">{inlineErrors.parentAccount}</p>
-                    )}
+              {/* Account Code field */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <LabelTooltip label="Account Code" tooltipText="The unique registry number for this general ledger account. Can be manual or auto-sequenced based on parent guidelines." />
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="checkbox"
+                      id="auto-gen-check"
+                      checked={isAutoCode}
+                      onChange={(e) => setIsAutoCode(e.target.checked)}
+                      className="w-3 h-3 rounded text-slate-600 focus:ring-opacity-0 focus:ring-0"
+                    />
+                    <label htmlFor="auto-gen-check" className="text-[10px] text-slate-500 cursor-pointer">Auto Sequence</label>
                   </div>
-
-                  {/* Sequence 2: Account Type Dropdown */}
-                  <div>
-                    <label className="block font-bold text-slate-855 mb-1.5 font-sans flex items-center gap-1.5">
-                      <span className="text-indigo-600 font-extrabold mr-1">2.</span>
-                      <span>Account Type *</span>
-                      <BusinessTooltip text="Specifies primary classification class. Assets, Liabilities and Equity affect Balance Sheets directly." />
-                    </label>
-                    <select
-                      value={accountType}
-                      disabled={isReadOnly}
-                      onChange={(e) => handleAccountTypeChange(e.target.value as AccountType)}
-                      className="w-full border border-slate-250 rounded-lg p-2.5 bg-white text-slate-855 font-extrabold focus:ring-1 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    disabled={isAutoCode}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="e.g. 1020"
+                    className="w-full text-xs p-2 bg-slate-50 disabled:bg-slate-100 disabled:text-slate-500 border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-slate-400 font-mono tracking-wider"
+                  />
+                  {!isAutoCode && suggestedNextCode && (
+                    <button
+                      type="button"
+                      onClick={() => setCode(suggestedNextCode)}
+                      title="Insert system sequenced suggestion to bypass manual code errors"
+                      className="absolute right-2 top-2 text-[9.5px] text-slate-400 hover:text-slate-700 flex items-center gap-0.5 font-bold"
                     >
-                      <option value="">-- Choose Account Type (Select Dropdown) --</option>
-                      {ACCOUNT_TYPES.map(t => (
-                        <option key={t} value={t}>
-                          {t} ({t === 'Asset' || t === 'Expense' || t === 'Cost of Sales' ? 'Debit Normal Balance' : 'Credit Normal Balance'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin-hover" />
+                      Suggest
+                    </button>
+                  )}
+                </div>
+                {validations.codeDuplicate && (
+                  <span className="text-[10px] text-rose-600 font-bold block mt-1">Code already reserved inside general chart!</span>
+                )}
+              </div>
 
-                  {/* Sequence 3 & 4: Account Code and Account Name */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <label className="block font-bold text-slate-800 font-sans">
-                          <span className="text-indigo-600 font-extrabold mr-1">3.</span>
-                          Account Code *
-                        </label>
-                        {suggestedNextCode && (
-                          <button
-                            type="button"
-                            onClick={() => setCode(suggestedNextCode)}
-                            className="text-[10px] bg-slate-900 hover:bg-[#0051d5] text-white px-2 py-0.5 rounded font-black font-sans leading-none flex items-center gap-1"
-                          >
-                            <Sparkles className="w-2.5 h-2.5" />
-                            Suggest Next: {suggestedNextCode}
-                          </button>
-                        )}
-                      </div>
-                      
-                      <input
-                        type="text"
-                        value={code}
-                        disabled={!canEditCode && !!code}
-                        onChange={(e) => setCode(e.target.value.replace(/[^0-9-]/g, ''))}
-                        className={`w-full border rounded-lg p-2.5 font-mono font-black text-blue-600 focus:ring-1 focus:ring-blue-500 outline-none ${inlineErrors.code ? 'border-red-400 bg-red-50/20' : 'border-slate-250 bg-white'}`}
-                        placeholder="Assign distinct numeric code"
-                      />
-                      {inlineErrors.code && <p className="text-red-505 font-medium mt-1 text-[10px]">{inlineErrors.code}</p>}
-                    </div>
+              {/* Dynamic Group Grouping (Categorize in other way for each account type requested) */}
+              <div>
+                <LabelTooltip label="Functional Group Classification" tooltipText="Dynamic primary group classifications mapped with IFRS guidelines for structural reporting lines." className="mb-1" />
+                <select
+                  value={ifrsClass}
+                  onChange={(e) => setIfrsClass(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-slate-400"
+                >
+                  {availableGroups.map((groupOpt) => (
+                    <option key={groupOpt} value={groupOpt}>{groupOpt}</option>
+                  ))}
+                </select>
+              </div>
 
-                    <div>
-                      <label className="block font-bold text-slate-800 mb-1 font-sans">
-                        <span className="text-indigo-600 font-extrabold mr-1">4.</span>
-                        Account Name / Title *
-                      </label>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className={`w-full border rounded-lg p-2.5 font-bold text-slate-805 focus:ring-1 focus:ring-blue-500 outline-none font-sans ${inlineErrors.name ? 'border-red-400 bg-red-50/20' : 'border-slate-250 bg-white'}`}
-                        placeholder="e.g. Export Debitors Division-C"
-                      />
-                      {inlineErrors.name && <p className="text-red-505 font-medium mt-1 text-[10px]">{inlineErrors.name}</p>}
-                    </div>
-                  </div>
+              {/* Dynamic Categorization */}
+              <div>
+                <LabelTooltip label="Subgroup Subcategory" tooltipText="The secondary subcategory level that aggregates specific transactional lines in reports." className="mb-1" />
+                <select
+                  value={accountCategory}
+                  onChange={(e) => setAccountCategory(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-slate-400"
+                >
+                  {availableCategories.map((subOpt) => (
+                    <option key={subOpt} value={subOpt}>{subOpt}</option>
+                  ))}
+                </select>
+              </div>
 
-                  {/* Bilingual Translation Support */}
-                  <div>
-                    <label className="block font-bold text-slate-500 mb-1 font-sans">Amharic Translation Title (optional)</label>
+              {/* English Account Name */}
+              <div>
+                <LabelTooltip label="GL Account Name (English)" tooltipText="Official English name description of this ledger account, e.g., Cash or Cash equivalents." className="mb-1" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Accounts Receivable Main"
+                  className="w-full text-xs p-2 bg-white border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-slate-400 font-sans"
+                />
+              </div>
+
+              {/* Amharic Account Name */}
+              <div>
+                <LabelTooltip label="የሂሳብ መደብ ስም (Amharic)" tooltipText="The exact Amharic equivalent translation name for local Ethiopian banking audits and tax filings." className="mb-1" />
+                <input
+                  type="text"
+                  value={nameAmharic}
+                  onChange={(e) => setNameAmharic(e.target.value)}
+                  placeholder="Amharic layout input representation"
+                  className="w-full text-xs p-2 bg-white border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-slate-400 font-sans text-slate-800"
+                />
+              </div>
+
+              {/* Parent account selector */}
+              <div className="md:col-span-2 relative">
+                <LabelTooltip label="Parent Account" tooltipText="The parent account under which this new child account falls. Used to generate consolidated multi-level trial balances." className="mb-1" />
+                <div 
+                  onClick={() => setShowParentDropdown(!showParentDropdown)}
+                  className="flex items-center justify-between border border-slate-250 bg-slate-50 p-2 text-xs rounded shadow-inner cursor-pointer hover:bg-slate-100/70 transition"
+                >
+                  <span className="font-medium text-slate-750">
+                    {parentAccount === 'None' ? 'None (Top Level Root Account Node)' : `${parentAccount} - ${accounts.find(a => a.code === parentAccount)?.name || ''}`}
+                  </span>
+                  <span className="text-[10px] text-indigo-700 font-bold underline">
+                    {showParentDropdown ? 'Hide List' : 'Select Parent Account'}
+                  </span>
+                </div>
+
+                {showParentDropdown && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-300 rounded-lg p-2.5 max-h-52 overflow-y-auto space-y-1 shadow-lg ring-1 ring-black/5">
                     <input
                       type="text"
-                      value={nameAmharic}
-                      onChange={(e) => setNameAmharic(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg p-2.5 font-bold text-slate-805 focus:ring-1 focus:ring-blue-500 focus:outline-none font-sans bg-white animate-fadeIn"
-                      placeholder="e.g. ወጪ ደንበኞች ክፍል-ሐ"
+                      placeholder="Search master list hierarchies by digits or codes..."
+                      value={parentSearch}
+                      onChange={(e) => setParentSearch(e.target.value)}
+                      className="w-full p-1.5 text-[10.5px] border border-slate-200 rounded bg-slate-50 focus:outline-none"
                     />
-                  </div>
-
-                  {/* Override balance setting */}
-                  <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between text-xs">
-                    <div>
-                      <span className="font-bold text-slate-705 block">Report Normal Balance</span>
-                      <span className="text-[10px] text-slate-450 block mt-0.5">Determined automatically from standard ERP rules. Override can be performed if role allows.</span>
-                    </div>
-                    <select
-                      value={balance}
-                      onChange={(e) => setBalance(e.target.value as BalanceType)}
-                      disabled={isReadOnly || currentRole === 'Accountant'}
-                      className="bg-white border border-slate-250 rounded p-1.5 text-xs font-bold font-sans text-slate-800 cursor-pointer"
-                    >
-                      <option value="Debit">Debit Balance</option>
-                      <option value="Credit">Credit Balance</option>
-                      <option value="Debit or Credit">Debit or Credit (Clearing)</option>
-                      <option value="None">None (Statistical Header)</option>
-                    </select>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Side context & help block */}
-              <div className="space-y-4">
-                
-                {/* Visual Hierarchy path card */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-3xs space-y-3">
-                  <span className="text-[10px] font-mono font-black text-indigo-650 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-200 uppercase tracking-widest block text-center">
-                    Visual ERP Breadcrumb Path
-                  </span>
-                  <div className="text-xs space-y-1.5 leading-snug">
-                    <p className="font-bold text-slate-655 text-[10px] uppercase">Calculated Structure Position:</p>
-                    <div className="bg-white p-3 rounded-lg border border-slate-150 font-sans font-medium text-slate-700 flex flex-wrap items-center gap-1.5">
-                      {computedHierarchyPath.split(' > ').map((crumb, idx, arr) => (
-                        <React.Fragment key={idx}>
-                          <span className={`text-[11px] ${idx === arr.length - 1 ? 'font-black text-indigo-600' : 'text-slate-500'}`}>
-                            {crumb}
-                          </span>
-                          {idx < arr.length - 1 && <ChevronRight className="w-3.5 h-3.5 text-slate-350 shrink-0" />}
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-[10px] text-slate-455 leading-relaxed pt-1.5 border-t border-slate-200">
-                    Calculated Level depth: <strong className="text-slate-700 font-black">Level {computedLevel} Account</strong>
-                  </div>
-                </div>
-
-                {/* Interactive Tree Preview Simulator */}
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-2">
-                  <h5 className="font-black text-xs text-slate-805 uppercase tracking-tight flex items-center gap-1.5 pb-1 border-b border-indigo-100">
-                    <Layers className="text-[#0051d5] w-3.5 h-3.5" />
-                    <span>Real-Time Account Tree Preview</span>
-                  </h5>
-                  <p className="text-[9px] text-slate-505 leading-relaxed">Where this item will sit inside the primary structure relative to hierarchy counterparts:</p>
-                  
-                  <div className="bg-slate-55 border border-slate-150 p-3 rounded-lg font-mono text-[10px] space-y-1 max-h-48 overflow-y-auto select-none">
-                    <div className="text-slate-500 font-bold">└─ Chart of Accounts (COA)</div>
-                    <div className="text-slate-500 pl-3">└─ [{accountType || 'Asset'}] Folder</div>
-                    <div className="pl-6 text-slate-450 truncate">└─ {group || 'Statement Section'}</div>
-                    <div className="pl-9 text-slate-450 truncate">└─ {subgroup || 'Category'}</div>
-                    <div className="pl-12 text-slate-450 truncate">
-                      {parentAccount !== 'None' ? `└─ Parent ID: ${parentAccount}` : '└─ [Top Root Header]'}
-                    </div>
-                    {code && (
-                      <div className="pl-16 font-black text-indigo-650 animate-pulse flex items-center gap-1">
-                        <CornerDownRight className="w-3.5 h-3.5" />
-                        <span>[{code}] {name || 'Draft Name'}</span>
+                    <div className="space-y-0.5 pt-1">
+                      <div 
+                        onClick={() => {
+                          setParentAccount('None');
+                          setShowParentDropdown(false);
+                        }}
+                        className={`p-1.5 text-[10px] rounded cursor-pointer leading-tight transition ${parentAccount === 'None' ? 'bg-indigo-50 border border-indigo-200 font-bold text-indigo-700' : 'hover:bg-slate-50 text-slate-650'}`}
+                      >
+                        None (Independent Root Entity Node Level-1)
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* System rules helper widget */}
-                <div className="bg-indigo-950 text-indigo-100 p-4 rounded-xl space-y-2.5 border border-indigo-900 shadow-xs">
-                  <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block font-mono">ERP Business Rule Helper</span>
-                  <div className="text-[10px] leading-relaxed space-y-2">
-                    <p><strong className="text-white">Rule 1 [Hierarchy Gating]</strong>: Sub-accounts can only be generated under unlocked folders.</p>
-                    <p><strong className="text-white">Rule 2 [Automatic Clears]</strong>: Changing primary Account type drops and resets parent properties cascade fields.</p>
-                  </div>
-                </div>
-
-            {/* --- STEP 2: CLASSIFICATION DETAILS --- */}
-          {step === 2 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 animate-fadeIn">
-              
-              {/* Classification Inputs Card */}
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs space-y-5 md:col-span-2 font-sans text-xs">
-                <h4 className="font-sans font-black text-xs uppercase tracking-widest text-[#111827] pb-2 border-b border-slate-100 flex items-center justify-between font-bold">
-                  <span>FINANCIAL STATEMENT MAP & LOCAL SEGMENTS</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Classification Stage 2</span>
-                </h4>
-
-                <div className="space-y-4">
-                  
-                  {/* Sequence 1 & 2: Statement Section (Group) and Category (Subgroup) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block font-bold text-slate-700 mb-1.5">1. Statement Section (Group) *</label>
-                      {accountType ? (
-                        <select
-                          value={group}
-                          onChange={(e) => {
-                            setGroup(e.target.value);
-                            setSubgroup('');
+                      {searchedParents.map(parentItem => (
+                        <div 
+                          key={parentItem.code}
+                          onClick={() => {
+                            setParentAccount(parentItem.code);
+                            setShowParentDropdown(false);
                           }}
-                          className="w-full border border-slate-250 rounded-lg p-2.5 bg-white text-slate-800 font-bold focus:ring-1 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                          className={`p-1.5 text-[10px] rounded cursor-pointer leading-tight border transition ${parentAccount === parentItem.code ? 'bg-indigo-50 border-indigo-200 font-bold text-indigo-700' : 'border-transparent hover:bg-slate-50 text-slate-700'}`}
                         >
-                          <option value="">-- Choose Financial Section --</option>
-                          {availableGroups.map(g => <option key={g} value={g}>{g}</option>)}
-                        </select>
-                      ) : (
-                        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-400 italic font-bold">
-                          Waiting for Account Type selection...
+                          <span className="font-mono font-semibold text-slate-500 mr-2">[{parentItem.code}]</span>
+                          {parentItem.name.split(' (')[0]}
                         </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block font-bold text-slate-705 mb-1.5">2. Account Category (Subgroup) *</label>
-                      {group ? (
-                        <select
-                          value={subgroup}
-                          onChange={(e) => setSubgroup(e.target.value)}
-                          className="w-full border border-slate-250 rounded-lg p-2.5 bg-white text-slate-800 font-bold focus:ring-1 focus:ring-blue-500 focus:outline-none cursor-pointer"
-                        >
-                          <option value="">-- Choose Segment Category --</option>
-                          {availableSubgroups.map(sg => <option key={sg} value={sg}>{sg}</option>)}
-                        </select>
-                      ) : (
-                        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-400 italic font-bold">
-                          Waiting for statement section...
-                        </div>
+                      ))}
+                      {searchedParents.length === 0 && (
+                        <p className="text-[10px] text-slate-400 font-medium text-center py-2">No matching parent accounts available for current type selection.</p>
                       )}
                     </div>
                   </div>
-
-                  {/* Sequence 3 & 4: Company and Branch (Always unlocked) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block font-bold text-slate-500 mb-1">3. Company / Legal Entity *</label>
-                      <select
-                        value={company}
-                        onChange={(e) => setCompany(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 text-slate-800 font-bold focus:ring-1 focus:ring-blue-500 focus:outline-none cursor-pointer truncate"
-                      >
-                        {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block font-bold text-slate-500 mb-1">4. Branch / Segment Location *</label>
-                      <select
-                        value={branch}
-                        disabled={activeInputLevel < 1}
-                        onChange={(e) => setBranch(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg p-2.5 bg-slate-50 text-slate-800 focus:ring-1 focus:ring-blue-500 focus:outline-none cursor-pointer truncate disabled:opacity-50"
-                      >
-                        {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="p-4 bg-indigo-50/50 border border-indigo-150 rounded-xl space-y-2 text-slate-705 leading-normal">
-                    <span className="text-[10px] font-black tracking-wider text-indigo-700 uppercase block">IFRS Mapping Compliance</span>
-                    <p className="text-[10.5px]">
-                      By designating <strong>{group || '(Unassigned Section)'}</strong> and reporting category <strong>{subgroup || '(Unassigned Category)'}</strong>, this account triggers direct mapping templates inside the Consolidated Statement of Financial Position model.
-                    </p>
-                  </div>
-
-                </div>
+                )}
               </div>
 
-              {/* Step 2 Information Column */}
-              <div className="space-y-4 font-sans text-xs">
-                
-                {/* Structural Alignment HUD */}
-                <div className="bg-slate-900 border border-slate-800 text-slate-200 rounded-xl p-4 shadow-3xs space-y-3">
-                  <span className="text-[9px] font-mono font-black text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-900 uppercase tracking-widest block text-center">
-                    STRUCTURAL CLASSIFICATION PATH
-                  </span>
-                  
-                  <div className="space-y-2 font-bold">
-                    <div className="flex justify-between pb-1.5 border-b border-slate-800/80">
-                      <span className="text-slate-400 font-semibold">Ledger Group:</span>
-                      <strong className="text-white font-bold">{group || 'Unassigned'}</strong>
-                    </div>
-                    <div className="flex justify-between pb-1.5 border-b border-slate-800/80">
-                      <span className="text-slate-400 font-semibold">Ledger Category:</span>
-                      <strong className="text-white font-bold">{subgroup || 'Unassigned'}</strong>
-                    </div>
-                    <div className="flex justify-between pb-1.5 border-b border-slate-800/80">
-                      <span className="text-slate-400 font-semibold">Consolidated Under:</span>
-                      <strong className="text-white font-bold">{company}</strong>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Internal Verification checks card */}
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-2 text-xs">
-                  <h5 className="font-extrabold text-xs text-slate-800 uppercase tracking-tight flex items-center gap-1 font-bold">
-                    <CheckSquare className="text-emerald-500 w-3.5 h-3.5 shrink-0" />
-                    <span>Real-Time Compliance Audits</span>
-                  </h5>
-                  <ul className="text-[10px] text-slate-550 space-y-1.5 font-medium">
-                    <li className="flex items-center gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                      <span>Consolidation books compatibility checked</span>
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                      <span>Branch/Location segment registered</span>
-                    </li>
-                    <li className="flex items-center gap-1.5">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                      <span>Dual Entry compliance threshold valid</span>
-                    </li>
-                  </ul>
-                </div>
-
-              </div>
-
-            </div>
-          )}             </div>
-
-            </div>
-          )}
-
-          {/* --- STEP 3: TAX, CURRENCY & DIMENSIONS --- */}
-          {step === 3 && (
-            <div className="space-y-4">
-              
-              {/* Dynamic Company configuration segment switches */}
-              <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-3">
-                <span className="text-[10px] font-mono font-extrabold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 uppercase tracking-widest block text-center">
-                  C-Level System Administrator Settings: Segment Activation Board
-                </span>
-                <p className="text-[10px] text-slate-505 text-center leading-relaxed">Configure which dimensions should be required/active inside legal books before saving.</p>
-                <div className="grid grid-cols-2 sm:grid-cols-6 gap-3.5 text-center pt-1.5">
-                  {[
-                    { key: 'costCenter', label: 'Cost Center' },
-                    { key: 'project', label: 'Project Segment' },
-                    { key: 'department', label: 'Department' },
-                    { key: 'region', label: 'Geographical Region' },
-                    { key: 'profitCenter', label: 'Profit Center' },
-                    { key: 'businessUnit', label: 'Business Unit' }
-                  ].map((dim) => {
-                    const activeVal = dimensionConfigs[dim.key];
-                    return (
-                      <div key={dim.key} className="bg-slate-50 p-2 rounded-lg border border-slate-200 text-xs">
-                        <span className="font-bold block text-slate-700 leading-tight mb-1 text-[10px]">{dim.label}</span>
-                        <select
-                          value={activeVal}
-                          onChange={(e) => setDimensionConfigs({ ...dimensionConfigs, [dim.key]: e.target.value as any })}
-                          className="bg-white border border-slate-200 rounded text-[10px] py-1 px-1.5 w-full cursor-pointer font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        >
-                          <option value="Optional">Optional</option>
-                          <option value="Mandatory">Mandatory</option>
-                          <option value="Not Required">Not Applicable</option>
-                        </select>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
-                {/* Tax details card */}
-                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs space-y-4">
-                  <h4 className="font-sans font-black text-xs uppercase tracking-widest text-[#111827] pb-2 border-b border-slate-100 flex items-center gap-1.5 animate-pulse">
-                    <Activity className="text-emerald-500 w-4 h-4 shrink-0" />
-                    <span>Ethiopian ERCA Tax Compliance Mappings</span>
-                  </h4>
-
-                  <div className="space-y-3.5 text-xs">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block font-bold text-slate-550 mb-1">Standard VAT rate</label>
-                        <select
-                          value={vatCode}
-                          onChange={(e) => setVatCode(e.target.value)}
-                          className="w-full border border-slate-200 p-2.5 rounded-lg bg-white"
-                        >
-                          {VAT_CODES.map(v => <option key={v} value={v}>{v}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-550 mb-1">Withholding tax rate (WHT)</label>
-                        <select
-                          value={whtCode}
-                          onChange={(e) => setWhtCode(e.target.value)}
-                          className="w-full border border-slate-200 p-2.5 rounded-lg bg-white"
-                        >
-                          {WHT_CODES.map(w => <option key={w} value={w}>{w}</option>)}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block font-bold text-slate-550 mb-1">Sovereign Taxpayer Category</label>
-                        <select
-                          value={ethiopianTaxCategory}
-                          onChange={(e) => setEthiopianTaxCategory(e.target.value)}
-                          className="w-full border border-slate-200 p-2.5 rounded-lg bg-white"
-                        >
-                          {ETHIOPIAN_TAX_CATEGORIES.map(et => <option key={et} value={et}>{et}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block font-bold text-slate-550 mb-1">Currency Standard</label>
-                        <select
-                          value={currency}
-                          onChange={(e) => setCurrency(e.target.value)}
-                          className="w-full border border-slate-200 p-2.5 rounded-lg bg-white"
-                        >
-                          <option value="ETB">ETB - Ethiopian Birr</option>
-                          <option value="USD">USD - United States Dollar</option>
-                          <option value="EUR">EUR - European Euro</option>
-                          <option value="GBP">GBP - British Pound</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="chk-multicurrency"
-                          checked={multiCurrency}
-                          onChange={(e) => setMultiCurrency(e.target.checked)}
-                          className="h-4 w-4 text-indigo-600 rounded cursor-pointer"
-                        />
-                        <label htmlFor="chk-multicurrency" className="font-bold text-slate-650 cursor-pointer font-sans text-xs">Allow multi-currency trades</label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="chk-reval"
-                          checked={revaluationRequired}
-                          onChange={(e) => setRevaluationRequired(e.target.checked)}
-                          className="h-4 w-4 text-indigo-600 rounded cursor-pointer"
-                        />
-                        <label htmlFor="chk-reval" className="font-bold text-slate-655 cursor-pointer font-sans text-xs">IAS 21 Revaluation required</label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Reporting segments card */}
-                <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs space-y-4">
-                  <h4 className="font-sans font-black text-xs uppercase tracking-widest text-[#111827] pb-2 border-b border-slate-100 flex items-center gap-1.5">
-                    <Grid3X3 className="text-[#0051d5] w-4 h-4 shrink-0" />
-                    <span>Global Transaction Reporting Dimensions</span>
-                  </h4>
-
-                  <div className="space-y-3.5 text-xs">
-                    
-                    {dimensionConfigs.costCenter !== 'Not Required' && (
-                      <div>
-                        <label className="block font-bold text-slate-655 mb-1 flex justify-between">
-                          <span>Cost Centre segment {dimensionConfigs.costCenter === 'Mandatory' && <span className="text-red-500">*</span>}</span>
-                          <span className="text-[10px] font-semibold text-slate-400">Settings: {dimensionConfigs.costCenter}</span>
-                        </label>
-                        <select
-                          value={selectedCostCenter}
-                          onChange={(e) => setSelectedCostCenter(e.target.value)}
-                          className="w-full border border-slate-205 p-2 rounded bg-white text-xs"
-                        >
-                          <option value="CC-DEFAULT">CC-DEFAULT - AA Central Head office</option>
-                          <option value="CC-DIST">CC-DIST - Regional Logistics Division</option>
-                          <option value="CC-MAN">CC-MAN - Bole Lemi industrial park yard</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {dimensionConfigs.project !== 'Not Required' && (
-                      <div>
-                        <label className="block font-bold text-slate-655 mb-1 flex justify-between">
-                          <span>Associated Project {dimensionConfigs.project === 'Mandatory' && <span className="text-red-500">*</span>}</span>
-                          <span className="text-[10px] font-semibold text-slate-400">Settings: {dimensionConfigs.project}</span>
-                        </label>
-                        <select
-                          value={selectedProject}
-                          onChange={(e) => setSelectedProject(e.target.value)}
-                          className="w-full border border-slate-205 p-2 rounded bg-white text-xs"
-                        >
-                          <option value="PRJ-NA">Project N/A - Continuous Operation</option>
-                          <option value="PRJ-BOLE-EXP">PRJ-BOLE-EXP - Export Coffee Warehouse Expansion</option>
-                          <option value="PRJ-SAP-INTEG">PRJ-SAP-INTEG - SAP S/4HANA Middleware deployment</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {dimensionConfigs.department === 'Not Required' && 
-                     dimensionConfigs.costCenter === 'Not Required' &&
-                     dimensionConfigs.project === 'Not Required' && (
-                      <div className="p-8 bg-slate-50 rounded-xl text-center italic text-slate-400 leading-normal">
-                        All financial segments have been disabled by system administrator. No dimensional parameters are enforced on journal entry mappings.
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
-
-          {/* --- STEP 4: REVIEW & WORKFLOW --- */}
-          {step === 4 && (
-            <div className="space-y-4">
-              
-              {/* Layout summary cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-1.5 text-xs">
-                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">1. Identity Matrix</span>
-                  <p className="font-extrabold text-slate-900 font-mono text-[11px] truncate">[{code || 'PENDING'}] {name || 'Not Entered'}</p>
-                  <p className="text-[10px] text-slate-500 font-medium truncate">{company}</p>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-1.5 text-xs">
-                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">2. Posting controls</span>
-                  <p className="font-extrabold text-indigo-700 font-mono text-[11px]">
-                    {isHeaderAccount ? 'Summary Folder' : 'Direct Transaction Account'}
-                  </p>
-                  <p className="text-[10px] text-slate-500 truncate">
-                    {slType === 'None' ? 'No Subledger Active' : `Subledger: ${slType}`}
-                  </p>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-1.5 text-xs">
-                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">3. Tax Class Code</span>
-                  <p className="font-extrabold text-slate-800 font-mono text-[11px] truncate">{vatCode}</p>
-                  <p className="text-[10px] text-slate-500 truncate">{ethiopianTaxCategory}</p>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-3xs space-y-1.5 text-xs">
-                  <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block">4. System Status</span>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="w-2 h-2 rounded-full bg-indigo-650 animate-pulse"></span>
-                    <span className="font-extrabold text-[#0051d5] text-[11px]">Pending Ledger Insertion</span>
-                  </div>
-                  <p className="text-[10px] text-slate-500">IFRS Class: {ifrsClass.slice(0, 15)}...</p>
-                </div>
-
-              </div>
-
-              {/* Accounting impact preview */}
-              <div className="bg-slate-950 text-white p-4 rounded-xl space-y-3 shadow-xs">
-                <span className="text-[9px] font-black uppercase text-indigo-400 tracking-widest block font-mono">
-                  ERP DOUBLE-ENTRY LEDGER IMPACT PREVIEW
-                </span>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
-                  <div className="space-y-1 bg-slate-900 p-3 rounded-lg border border-slate-800">
-                    <span className="font-black text-emerald-400 block pb-1 border-b border-emerald-950/60">Debit Posting Impact:</span>
-                    <p className="text-[10.5px] text-slate-300 leading-relaxed pt-1">
-                      {accountType === 'Asset' || accountType === 'Expense' || accountType === 'Cost of Sales' ? (
-                        <span>Increases the asset value and adds to cumulative operating debit balances inside the current period.</span>
-                      ) : (
-                        <span>Reduces the net balance of this liability/equity/revenue class inside general ledger calculations.</span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="space-y-1 bg-slate-900 p-3 rounded-lg border border-slate-800">
-                    <span className="font-black text-amber-500 block pb-1 border-b border-amber-950/60">Credit Posting Impact:</span>
-                    <p className="text-[10.5px] text-slate-300 leading-relaxed pt-1">
-                      {accountType === 'Asset' || accountType === 'Expense' || accountType === 'Cost of Sales' ? (
-                        <span>Decreases asset accounts, logging outflows, depreciation writes, or credit adjustments.</span>
-                      ) : (
-                        <span>Increases cumulative reserves, equity, or operating sales inside the global company balance matrix.</span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Graphical Workflow route preview */}
-              <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-3xs space-y-3.5">
-                <h5 className="font-black text-xs text-slate-800 uppercase tracking-tight pb-1 border-b border-slate-100 flex items-center gap-1.5">
-                  <Workflow className="w-4 h-4 text-indigo-600 shrink-0" />
-                  <span>ERP Multi-Tier Approval Flow Visualization</span>
-                </h5>
-                <p className="text-[10px] text-slate-500">This account requires compliance clearance before being set as active. Trace flow progress below:</p>
-                
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-slate-50 p-3 rounded-lg">
-                  <div className="flex-1 p-2 bg-white rounded border border-indigo-200 text-center text-xs">
-                    <span className="text-[9px] font-black text-indigo-500 block uppercase">1. Preparer Stage</span>
-                    <span className="font-bold text-slate-800">Accountant</span>
-                    <span className="block text-[8px] text-slate-400">mzerihun01@gmail.com</span>
-                  </div>
-                  <div className="text-center text-slate-300 hidden sm:block">➔</div>
-                  <div className="flex-1 p-2 bg-white rounded border border-slate-200 text-center text-xs">
-                    <span className="text-[9px] font-black text-slate-400 block uppercase">2. Audit Review</span>
-                    <span className="font-bold text-slate-500">Senior Accountant</span>
-                    <span className="block text-[8px] text-slate-400">System Checklist Verified</span>
-                  </div>
-                  <div className="text-center text-slate-300 hidden sm:block">➔</div>
-                  <div className="flex-1 p-2 bg-white rounded border border-slate-200 text-center text-xs">
-                    <span className="text-[9px] font-black text-slate-400 block uppercase">3. CFO Final Sign-off</span>
-                    <span className="font-bold text-slate-500">Finance Manager</span>
-                    <span className="block text-[8px] text-slate-400">Authorized approver pool</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Audit trail comments area */}
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs space-y-3">
-                <label className="block font-sans font-black text-xs text-slate-800 uppercase tracking-widest">
-                  Internal audit commentary explanations *
-                </label>
+              {/* Standard text description */}
+              <div className="md:col-span-2">
+                <LabelTooltip label="Explanation Note" tooltipText="Detailed justification log for audit reviews. Notes here appear in ledger history logs." className="mb-1" />
                 <textarea
-                  value={auditTrailNotes}
-                  onChange={(e) => setAuditTrailNotes(e.target.value)}
-                  rows={2}
-                  className="w-full border border-slate-250 rounded-lg p-2.5 text-xs text-slate-805 font-sans focus:ring-1 focus:ring-blue-500 outline-none"
-                  placeholder="Justify this ledger account inclusion in relation to standard GAAP/IFRS bookkeeping practices."
-                  required
+                  rows={3}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Record compliance reasonings or explanation notes for future audit review checklists..."
+                  className="w-full text-xs p-2.5 bg-white border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-indigo-500 text-slate-800 leading-normal"
                 />
               </div>
 
             </div>
-          )}
 
-          {/* Bottom navigation controls */}
-          <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 select-none">
+          </div>
+
+          {/* Compliance, tax & auxiliary fields (Tighter styling, small space-y) */}
+          <div className="bg-white border border-slate-200 rounded-lg p-3 md:p-4 shadow-sm space-y-3">
             
-            <div className="text-[11px] font-bold text-slate-550 font-sans">
-              {warnings.length > 0 ? (
-                <span className="text-amber-600 block animate-pulse">⚠️ {warnings.length} compliance validation alerts active</span>
-              ) : (
-                <span className="text-emerald-600">✓ All system constraints conform properly.</span>
-              )}
+            <h3 className="text-xs font-bold text-slate-900 uppercase border-b border-slate-100 pb-1.5 flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-slate-450" />
+              Auxiliary Compliance & ERCA Tax rules
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              
+              {/* Branch Selection */}
+              <div>
+                <LabelTooltip label="Branch Facility Designation" tooltipText="The specific enterprise branch or warehouse location that owns this general ledger account position." className="mb-1" />
+                <select
+                  value={branchDetail}
+                  onChange={(e) => setBranchDetail(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-slate-400"
+                >
+                  <option value="Addis Ababa Central Branch">Addis Ababa Central Branch</option>
+                  <option value="Dire Dawa Regional Branch">Dire Dawa Regional Branch</option>
+                  <option value="Hawassa Southern Branch">Hawassa Southern Branch</option>
+                  <option value="Adama Eastern Branch">Adama Eastern Branch</option>
+                  <option value="Bahir Dar Northern Branch">Bahir Dar Northern Branch</option>
+                  <option value="Mekelle District Branch">Mekelle District Branch</option>
+                  <option value="Dessie Hub Branch">Dessie Hub Branch</option>
+                  <option value="Gondar North-West Branch">Gondar North-West Branch</option>
+                </select>
+              </div>
+
+              {/* Subsidiary Ledger map */}
+              <div>
+                <LabelTooltip label="Subledger Mapping Controls" tooltipText="Ties this account to an auxiliary register (such as Vendor, Bank, or Customer) to enforce strict sub-ledger reconciliation." className="mb-1" />
+                <select
+                  value={subledger}
+                  onChange={(e) => setSubledger(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-slate-400"
+                >
+                  <option value="None">None (Standard direct Ledger posting allowed)</option>
+                  <option value="Customer">Customer (Enforces auxiliary trade debtors ledger tracking)</option>
+                  <option value="Supplier">Supplier (Enforces auxiliary trade creditors ledger tracking)</option>
+                  <option value="Fixed Asset">Fixed Asset (Binds registry item directly to plant machinery catalog)</option>
+                  <option value="Inventory">Inventory (Ties movement accounts with storage log files)</option>
+                  <option value="Bank">Bank (Enforces monthly bank statement reconciliations)</option>
+                  <option value="Cash">Cash (Physical general vault accounts reconciliation constraints)</option>
+                  <option value="Employee">Employee (Direct payables mapping configurations)</option>
+                  <option value="Tax Authority">Tax Authority (Required withholding & VAT records tracking)</option>
+                </select>
+              </div>
+
+              {/* Ethiopian tax categorization */}
+              <div>
+                <LabelTooltip label="ERCA Tax Standard Level" tooltipText="Controls the automated tax calculation mappings to conform directly to Ethiopian Revenue & Customs Authority guidelines." className="mb-1" />
+                <select
+                  value={ethiopianTaxTreatment}
+                  onChange={(e) => setEthiopianTaxTreatment(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-slate-400"
+                >
+                  <option value="VAT 15% Standard">VAT 15% Standard Rate</option>
+                  <option value="VAT Exempt Services">VAT Exempt Transactions</option>
+                  <option value="Withholding Tax 2% (Goods)">Withholding 2% standard Goods Tax</option>
+                  <option value="Withholding Tax 3% (Services)">Withholding 3% standard Services Tax</option>
+                  <option value="Direct Tax Exempt">Direct Income Exemption Treatment</option>
+                  <option value="Zero-Rated VAT Revenue">VAT Zero-Rated Export Revenue</option>
+                </select>
+              </div>
+
+              {/* IFRS standard reference list */}
+              <div>
+                <LabelTooltip label="Global IFRS IAS Audit Reference" tooltipText="The precise standard (e.g., IFRS 9 or IAS 16) used to govern asset valuation, recognition thresholds, and presentations." className="mb-1" />
+                <select
+                  value={ifrsRef}
+                  onChange={(e) => setIfrsRef(e.target.value)}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-250 rounded shadow-inner focus:outline-none focus:ring-1 focus:ring-slate-400"
+                >
+                  <option value="IFRS 9 - Financial Instruments Standard">IFRS 9 - Standard Financial Instruments Definition</option>
+                  <option value="IFRS 15 - Revenue from Contracts Standard">IFRS 15 - Five Step Contract Revenue Standard</option>
+                  <option value="IAS 16 - Property, Plant and Equipment">IAS 16 - Material Asset Valuation And Depreciation</option>
+                  <option value="IAS 2 - Inventories Valuation">IAS 2 - Raw Stock Valuation Standards Criteria</option>
+                  <option value="IAS 1 - Presentation of Financial Statements">IAS 1 - Overall Ledger Report Classification Standards</option>
+                  <option value="IAS 37 - Provisions and Contingent Liabilities">IAS 37 - Accruals & Pending Legal Provisions Standard</option>
+                  <option value="IAS 12 - Income Taxes Regulatory Class">IAS 12 - Standard Deferred Tax Disclosing Criteria</option>
+                  <option value="IFRS 16 - Leases Recognition">IFRS 16 - Right-of-Use Leased Assets Disclosings</option>
+                </select>
+              </div>
+
             </div>
 
-            <div className="flex flex-wrap items-center gap-2.5 justify-end">
+            {/* Posting and Dimension toggles layout (Tighter padding) */}
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 grid grid-cols-1 md:grid-cols-2 gap-4">
               
-              <button
-                type="button"
-                onClick={onCancel}
-                className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-sans font-bold text-xs rounded-lg transition-all cursor-pointer shadow-3xs"
-              >
-                Cancel Wizard
-              </button>
-
-              {step > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setStep(prev => prev - 1)}
-                  className="px-4 py-2 border border-indigo-200 hover:bg-indigo-50 font-sans font-bold text-xs text-indigo-700 rounded-lg transition-all cursor-pointer shadow-3xs"
-                >
-                  ⭠ Back Step
-                </button>
-              )}
-
-              {step < 3 ? (
-                <button
-                  type="button"
-                  disabled={isValidatingCode}
-                  onClick={handleNextStep}
-                  className="px-5 py-2 bg-slate-900 hover:bg-slate-850 text-white font-black text-xs uppercase tracking-wider rounded-lg transition-all cursor-pointer shadow-xs flex items-center gap-1.5"
-                >
-                  {isValidatingCode ? (
-                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  ) : (
-                    <span>Next Sequence ➔</span>
-                  )}
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={isReadOnly}
-                    onClick={() => handleFinalSubmit('Draft')}
-                    className="border border-[#0051d5] text-[#0051d5] hover:bg-[#0051d5]/5 px-4 py-2 rounded-lg text-xs font-sans font-black flex items-center gap-1.5 transition-all shadow-3xs cursor-pointer disabled:opacity-40"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>Save Draft</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={isReadOnly}
-                    onClick={() => handleFinalSubmit('Submit')}
-                    className="bg-[#0051d5] border border-blue-600 text-white hover:bg-[#0042b4] px-5 py-2 rounded-lg text-xs font-sans font-black flex items-center gap-1.5 transition-all shadow-sm cursor-pointer disabled:opacity-40"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>Authorize & Insert Account</span>
-                  </button>
+              <div className="space-y-1.5 justify-center">
+                <span className="block text-[11px] font-bold text-slate-800 uppercase tracking-wide">Posting Constraints</span>
+                
+                <div className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    id="posting-allowed"
+                    checked={allowDirectPosting}
+                    onChange={(e) => setAllowDirectPosting(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-0"
+                  />
+                  <label htmlFor="posting-allowed" className="text-slate-700 font-semibold cursor-pointer">Allow Direct manual journal uploads</label>
                 </div>
-              )}
+
+                <div className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    id="is-control"
+                    checked={isControlAccount}
+                    onChange={(e) => setIsControlAccount(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-0"
+                  />
+                  <label htmlFor="is-control" className="text-slate-700 font-semibold cursor-pointer">Mark as System-Posting Control Account</label>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    id="reconcile"
+                    checked={reconciliationRequired}
+                    onChange={(e) => setReconciliationRequired(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-0"
+                  />
+                  <label htmlFor="reconcile" className="text-slate-700 font-semibold cursor-pointer">Require transaction audit reconcile checks</label>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="block text-[11px] font-bold text-slate-800 uppercase tracking-wide">Active Audit Dimensions Required</span>
+                
+                <div className="flex items-center gap-4 text-xs">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dimensionCCRequired}
+                      onChange={(e) => setDimensionCCRequired(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-0"
+                    />
+                    <span>Cost Center</span>
+                  </label>
+
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dimensionProjectRequired}
+                      onChange={(e) => setDimensionProjectRequired(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-0"
+                    />
+                    <span>Project ID</span>
+                  </label>
+
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dimensionBURequired}
+                      onChange={(e) => setDimensionBURequired(e.target.checked)}
+                      className="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-0"
+                    />
+                    <span>Business Unit</span>
+                  </label>
+                </div>
+                <span className="text-[10px] text-slate-400 block italic leading-normal">
+                  Downstream journal postings will block automatically if toggled dimensions are blank or missing valid metadata fields.
+                </span>
+              </div>
 
             </div>
 
           </div>
 
-        </form>
-      )}
+          {/* 💵 PEACHTREE-STYLE OPENING BALANCE CONTROL CARD */}
+          <div className="bg-amber-50/45 border border-amber-200/80 rounded-lg p-3 md:p-4 shadow-xs space-y-3">
+            <h3 className="text-xs font-black text-amber-900 uppercase border-b border-amber-200/60 pb-1.5 flex items-center gap-1.5">
+              <Coins className="w-4 h-4 text-amber-600" />
+              <span>Peachtree-Style Ledger Opening Balance Configurator</span>
+            </h3>
+            <p className="text-[10px] text-amber-850/90 leading-tight">
+              Enter the initial layout balance for this specific General Ledger account. For previously created accounts and newly initialized ones, setting this updates the absolute beginning trial balances.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <LabelTooltip label="Opening Debit Balance (ETB)" tooltipText="Starting Debit balance in Ethiopian Birr (ETB). Standard Asset and Expense accounts carry Debit opening positions." className="mb-1 text-slate-800" />
+                <div className="relative">
+                  <span className="absolute left-2.5 top-2 text-[10px] font-black text-slate-400">ETB</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={openingBalanceDebit || ''}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setOpeningBalanceDebit(val);
+                      if (val > 0) setOpeningBalanceCredit(0);
+                    }}
+                    placeholder="0.00"
+                    className="w-full text-xs pl-10 p-2 bg-white border border-slate-250 rounded shadow-inner font-mono focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
+                  />
+                </div>
+              </div>
+              <div>
+                <LabelTooltip label="Opening Credit Balance (ETB)" tooltipText="Starting Credit balance in Ethiopian Birr (ETB). Standard Liability, Equity and Revenue accounts carry Credit opening positions." className="mb-1 text-slate-800" />
+                <div className="relative">
+                  <span className="absolute left-2.5 top-2 text-[10px] font-black text-slate-400">ETB</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={openingBalanceCredit || ''}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      setOpeningBalanceCredit(val);
+                      if (val > 0) setOpeningBalanceDebit(0);
+                    }}
+                    placeholder="0.00"
+                    className="w-full text-xs pl-10 p-2 bg-white border border-slate-250 rounded shadow-inner font-mono focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/60 p-2.5 rounded-lg border border-amber-200/50 text-[9.5px] text-amber-900 leading-tight">
+              <strong>Balance Note:</strong> Normal corporate accounting principles specify that accounts hold a net opening balance on one side (either Debit or Credit). Entering a value in either side will automatically clear out the other side to remain strict-compliant.
+            </div>
+          </div>
+
+          {/* Rapid Action Buttons instead of draft split layout */}
+          <div className="bg-white border border-slate-200 rounded-lg p-3 flex flex-wrap gap-2.5 justify-end shadow-inner">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-100 border border-slate-200 rounded transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSaveAndNew}
+              disabled={!validations.allValid}
+              className="px-4 py-2 text-xs font-bold bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-200 rounded flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Save & Create New
+            </button>
+            <button
+              onClick={handleSaveAndClose}
+              disabled={!validations.allValid}
+              className="px-5 py-2 text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded flex items-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              <Save className="w-3.5 h-3.5" />
+              Save & Close Panel
+            </button>
+          </div>
+
+        </div>
+
+        {/* Dynamic Context Panel and Real-time Auditing rules list */}
+        <div className="space-y-3 col-span-1">
+          
+          {/* Card 1: Hierarchy Tree path */}
+          <div className="bg-slate-900 text-white rounded-lg p-3.5 space-y-2 border border-slate-800 shadow">
+            <h4 className="text-[10.5px] font-bold text-indigo-300 uppercase tracking-widest">
+              Live hierarchy Tree positioning
+            </h4>
+            <div className="p-2 bg-slate-950/80 rounded border border-slate-800">
+              <span className="text-[11px] font-mono block text-emerald-450 whitespace-pre-wrap leading-tight">
+                {hierarchyPath}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-[10.5px]">
+              <div>
+                <span className="text-slate-400 block border-b border-slate-800 pb-0.5">Assigned Level</span>
+                <span className="font-bold text-slate-100 font-mono">Level {computedLevel} Node</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block border-b border-slate-800 pb-0.5">Ledger Status</span>
+                <span className="font-bold text-slate-100">{status}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Auto validation rules panel (Replaces visual tooltips helper text requested) */}
+          <div className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-sm space-y-2.5">
+            <h4 className="text-xs font-bold text-slate-900 border-b border-slate-100 pb-1.5 flex items-center gap-1 text-[11px] uppercase tracking-wider">
+              <Briefcase className="w-3.5 h-3.5 text-indigo-550" />
+              Computed Balances & Rules
+            </h4>
+
+            <div className="space-y-2 text-[11px] text-slate-650">
+              
+              <div className="flex items-center justify-between p-1 bg-slate-50 rounded">
+                <span>Account Code Audit:</span>
+                {validations.codeEmpty ? (
+                  <span className="text-rose-600 font-bold bg-rose-50 px-1 rounded">Required</span>
+                ) : validations.codeFormatWrong ? (
+                  <span className="text-rose-700 font-bold bg-rose-50 px-1 rounded">3-10 Digits</span>
+                ) : (
+                  <span className="text-emerald-700 font-bold bg-emerald-50 px-1 rounded">Valid Code format</span>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between p-1 bg-slate-50 rounded">
+                <span>English Name Definition:</span>
+                {validations.nameEmpty ? (
+                  <span className="text-rose-600 font-bold bg-rose-50 px-1 rounded">Required</span>
+                ) : (
+                  <span className="text-emerald-700 font-bold bg-emerald-50 px-1 rounded">Identified</span>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between p-1 bg-slate-50 rounded">
+                <span>Normal Balance Rule:</span>
+                <span className="text-indigo-700 font-bold bg-indigo-50 px-1 rounded font-mono">
+                  {balance === 'Debit' ? 'DEBIT (Asset/Expense)' : 'CREDIT (Liability/Equity/Revenue)'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-1 bg-slate-50 rounded">
+                <span>Ethiopian Tax treatment:</span>
+                <span className="text-slate-700 font-mono font-bold bg-slate-100 px-1 rounded-sm">
+                  {ethiopianTaxTreatment}
+                </span>
+              </div>
+
+            </div>
+
+            <p className="text-[10px] text-slate-400 italic font-medium leading-relaxed">
+              Normal balance is dynamic and locked. Changing the primary Account Type will instantly recalculate downstream trial balance properties.
+            </p>
+          </div>
+
+          {/* Card 3: Form Status Summary */}
+          <div className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-sm space-y-2.5">
+            <h4 className="text-xs font-bold text-slate-900 border-b border-slate-100 pb-1.5 flex items-center gap-1 text-[11px] uppercase tracking-wider">
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
+              Administrative History
+            </h4>
+            <div className="space-y-1 text-[10.5px] text-slate-500">
+              <div className="flex justify-between">
+                <span>Registry Owner:</span>
+                <span className="font-mono text-slate-700">mzerihun01@gmail.com</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Enterprise Host:</span>
+                <span className="text-slate-700 font-semibold">QM ERP Node AWS</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Ledger Standard:</span>
+                <span className="text-slate-700">IFRS 15 / IFRS 9 System</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
 
     </div>
   );
-}
-
-// Inline helper label translator
-function getAccountTypeLabel(type: string): string {
-  if (type === 'Cost of Sales') return 'Cost';
-  if (type === 'Revenue') return 'Income';
-  return type;
 }

@@ -131,9 +131,26 @@ export default function AdvancedFamSuite({
   };
 
   const handleNavigatePageDirectly = (pageId: string) => {
-    setActivePage(pageId);
-    if (onNavigatePage) {
-      onNavigatePage(pageId);
+    const adjustmentsSubs = ['reval', 'impair', 'components', 'maint', 'verify', 'disposal'];
+    const operationsSubs = ['capitalization', 'cip', 'transfer', 'leases'];
+
+    if (adjustmentsSubs.includes(pageId)) {
+      setActivePage('adjustments');
+      setAdjustmentsSub(pageId as any);
+      if (onNavigatePage) {
+        onNavigatePage('adjustments', pageId);
+      }
+    } else if (operationsSubs.includes(pageId)) {
+      setActivePage('operations');
+      setOperationsSub(pageId as any);
+      if (onNavigatePage) {
+        onNavigatePage('operations', pageId);
+      }
+    } else {
+      setActivePage(pageId);
+      if (onNavigatePage) {
+        onNavigatePage(pageId);
+      }
     }
   };
 
@@ -187,7 +204,8 @@ export default function AdvancedFamSuite({
             assets={assets} 
             onAddAsset={onAddAsset} 
             onNavigatePage={handleNavigatePageDirectly} 
-            onAddTransaction={onAddTransaction} 
+            onAddTransaction={onAddTransaction}
+            initialOpsSubTab={operationsSub}
           />
         )}
 
@@ -196,7 +214,8 @@ export default function AdvancedFamSuite({
             assets={assets} 
             onUpdateAssetStatus={onUpdateAssetStatus} 
             onNavigatePage={handleNavigatePageDirectly} 
-            onAddTransaction={onAddTransaction} 
+            onAddTransaction={onAddTransaction}
+            initialAdjustTab={adjustmentsSub}
           />
         )}
 

@@ -33,7 +33,7 @@ export const BRANCHES = [
   'Hawassa Branch',
 ];
 
-export const ACCOUNT_TYPES: AccountType[] = ['Asset', 'Liability', 'Equity', 'Revenue', 'Cost of Sales', 'Expense'];
+export const ACCOUNT_TYPES: AccountType[] = ['Asset', 'Liability', 'Equity', 'Revenue', 'Cost of Sales', 'Expense', 'Cost', 'Statistical', 'Memorandum / Off-Balance Sheet'];
 
 export const GROUPS: Record<AccountType, string[]> = {
   Asset: ['Current Assets', 'Non-Current Assets', 'Fixed Assets', 'Intangibles'],
@@ -42,6 +42,9 @@ export const GROUPS: Record<AccountType, string[]> = {
   Revenue: ['Operating Revenue', 'Non-Operating Revenue', 'Financial Income'],
   'Cost of Sales': ['Direct Materials', 'Direct Labor', 'Factory Overheads', 'Subcontracting Cost'],
   Expense: ['Operating Expenses', 'Administrative Expenses', 'Financial Expenses', 'Tax Expenses'],
+  Cost: ['Direct Material Cost', 'Direct Labor Cost', 'Indirect Costs'],
+  Statistical: ['Statistical Group'],
+  'Memorandum / Off-Balance Sheet': ['Memorandum Group'],
 };
 
 export const SUBGROUPS: Record<string, string[]> = {
@@ -59,6 +62,9 @@ export const SUBGROUPS: Record<string, string[]> = {
   'Direct Labor': ['Direct Wages', 'Contract Overtime wages'],
   'Operating Expenses': ['Cost of Goods Sold', 'Salaries and Wages', 'Rent and Utilities', 'Marketing and Ads'],
   'Administrative Expenses': ['Office Supplies', 'Depreciation', 'Insurance', 'Professional Fees'],
+  'Direct Material Cost': ['Direct Materials Raw', 'Factory Consumables'],
+  'Direct Labor Cost': ['Wages and Salaries', 'Overtime Wages'],
+  'Indirect Costs': ['Factory Rent', 'Utility Cost'],
 };
 
 export const IFRS_CLASSES = [

@@ -131,7 +131,7 @@ export default function FAMDashboard({ assets, onNavigatePage }: FAMDashboardPro
           </div>
           <div className="border-t border-slate-100 pt-2 mt-3 flex justify-between items-center text-[10px] text-slate-500 font-medium">
             <span className="flex items-center gap-1 text-rose-600"><TrendingDown className="w-3.5 h-3.5" /> Accum: -{totalAccumulated.toLocaleString()}</span>
-            <button onClick={() => onNavigatePage('depreciation-engine')} className="text-indigo-600 font-semibold hover:underline cursor-pointer">Run Engine</button>
+            <button onClick={() => onNavigatePage('depreciation-run')} className="text-indigo-600 font-semibold hover:underline cursor-pointer">Run Engine</button>
           </div>
         </div>
 
@@ -198,7 +198,7 @@ export default function FAMDashboard({ assets, onNavigatePage }: FAMDashboardPro
           </div>
           <div className="border-t border-slate-100 pt-3 mt-4 text-[10px] text-slate-400 leading-normal flex items-center justify-between">
             <span>IFRS 16 Lease & PP&E</span>
-            <button onClick={() => onNavigatePage('configuration')} className="text-indigo-600 font-bold hover:underline">Config Classes</button>
+            <button onClick={() => onNavigatePage('administration')} className="text-indigo-600 font-bold hover:underline">Config Classes</button>
           </div>
         </div>
 
